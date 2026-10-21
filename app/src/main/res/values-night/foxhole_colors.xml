@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Тёмная палитра -->
+    <color name="fh_primary">#B9C3FF</color>
+    <color name="fh_on_primary">#002689</color>
+    <color name="fh_primary_container">#173A8F</color>
+    <color name="fh_on_primary_container">#DEE0FF</color>
+
+    <color name="fh_secondary">#A9CFCD</color>
+    <color name="fh_on_secondary">#003737</color>
+    <color name="fh_secondary_container">#00504F</color>
+    <color name="fh_on_secondary_container">#CCE8E7</color>
+
+    <color name="fh_tertiary">#EFC16B</color>
+    <color name="fh_on_tertiary">#402D00</color>
+    <color name="fh_tertiary_container">#5B4300</color>
+    <color name="fh_on_tertiary_container">#FFDEA6</color>
+</resources>

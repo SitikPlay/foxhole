@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="foxhole_icon_background">#0C1A43</color>
+
+    <!-- Светлая палитра -->
+    <color name="fh_primary">#1D3A8F</color>
+    <color name="fh_on_primary">#FFFFFF</color>
+    <color name="fh_primary_container">#DEE0FF</color>
+    <color name="fh_on_primary_container">#00164E</color>
+
+    <color name="fh_secondary">#00696E</color>
+    <color name="fh_on_secondary">#FFFFFF</color>
+    <color name="fh_secondary_container">#CCE8E7</color>
+    <color name="fh_on_secondary_container">#002020</color>
+
+    <color name="fh_tertiary">#7A5900</color>
+    <color name="fh_on_tertiary">#FFFFFF</color>
+    <color name="fh_tertiary_container">#FFDEA6</color>
+    <color name="fh_on_tertiary_container">#261900</color>
+</resources>

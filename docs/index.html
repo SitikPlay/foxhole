@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foxhole: shell-доступ без root</title>
+<meta name="description" content="Открытый менеджер shell-доступа для Android без root. Приложения получают shell-команды только после твоего разрешения.">
+<meta name="theme-color" content="#0C1A43">
+<meta property="og:title" content="Foxhole: shell-доступ без root">
+<meta property="og:description" content="Открытый менеджер shell-доступа для Android без root. Каждое приложение ты разрешаешь вручную.">
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --night: #0C1A43;
+  --deep: #08122F;
+  --ring: #1B2F72;
+  --fox: #FF8A2B;
+  --cream: #FBEBD3;
+  --mist: #A9B6DC;
+  --display: "Unbounded", "Onest", system-ui, sans-serif;
+  --text: "Onest", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--cream);
+  font: 400 1.0625rem/1.65 var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-underline-offset: 0.2em; }
+a:focus-visible, .btn:focus-visible { outline: 3px solid var(--cream); outline-offset: 3px; }
+.wrap { width: min(1080px, 100% - 2.5rem); margin-inline: auto; }
+
+/* шапка */
+.top { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 0; }
+.brand { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; font: 700 1.15rem var(--display); }
+.brand img { width: 40px; height: 40px; border-radius: 50%; }
+.lang { display: inline-flex; gap: 0.4rem; margin-right: 1.25rem; vertical-align: middle; }
+.lang button { display: inline-flex; padding: 0.3rem; margin: 0; background: none; border: 1.5px solid transparent; border-radius: 9px; line-height: 0; cursor: pointer; }
+.lang button:hover { border-color: var(--mist); }
+.lang button[aria-pressed="true"] { border-color: var(--fox); }
+.lang button:focus-visible { outline: 3px solid var(--cream); outline-offset: 3px; }
+.lang svg { display: block; width: 28px; height: 19px; border-radius: 3px; }
+html[lang="ru"] [data-t="en"] { display: none; }
+html[lang="en"] [data-t="ru"] { display: none; }
+.top nav a { color: var(--mist); text-decoration: none; padding: 0.4rem 0.2rem; }
+.top nav a:hover { color: var(--cream); text-decoration: underline; }
+
+/* главный экран */
+.hero { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 3rem; align-items: center; padding: 2.5rem 0 5rem; }
+.hero h1 {
+  margin: 0 0 1.25rem;
+  font: 700 clamp(1.9rem, 4.6vw, 3.2rem)/1.12 var(--display);
+  text-wrap: balance;
+}
+.lead { margin: 0 0 1.5rem; max-width: 34rem; color: var(--mist); font-size: 1.15rem; }
+.note { margin: 0 0 2rem; padding-left: 1rem; border-left: 3px solid var(--fox); max-width: 34rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 0.9rem; }
+.btn {
+  display: inline-block;
+  padding: 0.8rem 1.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1.5px solid transparent;
+}
+.btn-main { background: var(--fox); color: var(--night); }
+.btn-main:hover { background: #FF9D4D; }
+.btn-ghost { border-color: var(--ring); color: var(--cream); }
+.btn-ghost:hover { border-color: var(--mist); }
+.art {
+  display: block;
+  width: min(100%, 440px);
+  height: auto;
+  justify-self: center;
+  animation: rise 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(28px) scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+/* секции */
+.section { padding: 4rem 0; border-top: 1px solid var(--ring); }
+.section h2 { margin: 0 0 2rem; font: 700 clamp(1.4rem, 3vw, 1.8rem)/1.2 var(--display); }
+.section p { max-width: 40rem; }
+.muted { color: var(--mist); }
+
+.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; display: grid; gap: 2rem; max-width: 42rem; }
+.steps li { position: relative; padding-left: 4rem; counter-increment: step; }
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2.8rem;
+  height: 2.8rem;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--ring);
+  border-radius: 50%;
+  font: 700 1.1rem var(--display);
+}
+.steps h3 { margin: 0 0 0.25rem; font-size: 1.2rem; font-weight: 600; }
+.steps p { margin: 0; color: var(--mist); }
+
+.ops { margin: 0 0 1.5rem; max-width: 52rem; }
+.ops div { display: grid; grid-template-columns: minmax(0, 20rem) 1fr; gap: 1.5rem; padding: 0.9rem 0; border-bottom: 1px solid var(--ring); }
+.ops dt { font-family: var(--mono); font-size: 0.95rem; color: var(--fox); overflow-wrap: anywhere; }
+.ops dd { margin: 0; color: var(--mist); }
+
+.checks { list-style: none; margin: 0 0 1.5rem; padding: 0; display: grid; gap: 0.8rem; max-width: 40rem; }
+.checks li { position: relative; padding-left: 1.6rem; }
+.checks li::before { content: ""; position: absolute; left: 0; top: 0.6em; width: 0.65rem; height: 0.65rem; border-radius: 50%; background: var(--fox); }
+
+pre {
+  margin: 1.25rem 0 0;
+  padding: 1.1rem 1.25rem;
+  max-width: 44rem;
+  overflow-x: auto;
+  background: var(--deep);
+  border: 1px solid var(--ring);
+  border-radius: 14px;
+  font: 0.9rem/1.6 var(--mono);
+}
+
+.foot { padding: 2.5rem 0 3.5rem; border-top: 1px solid var(--ring); color: var(--mist); font-size: 0.95rem; }
+.foot .wrap { display: flex; flex-wrap: wrap; gap: 0.6rem 2rem; justify-content: space-between; }
+.foot a:hover { color: var(--cream); }
+
+@media (max-width: 820px) {
+  .hero { grid-template-columns: 1fr; gap: 2rem; padding-bottom: 3.5rem; }
+  .art { order: -1; width: min(70%, 280px); }
+  .ops div { grid-template-columns: 1fr; gap: 0.2rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .art { animation: none; }
+  html { scroll-behavior: auto; }
+}
+</style>
+<script>
+(function () {
+  var l = null;
+  try { l = new URLSearchParams(location.search).get('lang') || localStorage.getItem('foxhole-lang'); } catch (e) {}
+  if (l !== 'ru' && l !== 'en') { l = ((navigator.language || 'ru').toLowerCase().indexOf('ru') === 0) ? 'ru' : 'en'; }
+  document.documentElement.lang = l;
+  window.__foxholeLang = l;
+})();
+</script>
+</head>
+<body>
+
+<header class="wrap top">
+  <a class="brand" href="#top"><img src="icon.png" alt="" width="40" height="40">Foxhole</a>
+  <nav>
+  <span class="lang">
+    <button type="button" data-lang="ru" aria-label="Русский" title="Русский"><svg viewBox="0 0 28 19" aria-hidden="true" focusable="false"><rect width="28" height="6.34" fill="#fff"/><rect y="6.33" width="28" height="6.34" fill="#0039A6"/><rect y="12.66" width="28" height="6.34" fill="#D52B1E"/></svg></button>
+    <button type="button" data-lang="en" aria-label="English" title="English"><svg viewBox="0 0 28 19" aria-hidden="true" focusable="false"><rect width="28" height="19" fill="#B22234"/><rect y="1.462" width="28" height="1.462" fill="#fff"/><rect y="4.385" width="28" height="1.462" fill="#fff"/><rect y="7.308" width="28" height="1.462" fill="#fff"/><rect y="10.231" width="28" height="1.462" fill="#fff"/><rect y="13.154" width="28" height="1.462" fill="#fff"/><rect y="16.077" width="28" height="1.462" fill="#fff"/><rect width="11.2" height="10.231" fill="#3C3B6E"/><circle cx="2.0" cy="2.0" r="0.55" fill="#fff"/><circle cx="5.6" cy="2.0" r="0.55" fill="#fff"/><circle cx="9.2" cy="2.0" r="0.55" fill="#fff"/><circle cx="2.0" cy="5.1" r="0.55" fill="#fff"/><circle cx="5.6" cy="5.1" r="0.55" fill="#fff"/><circle cx="9.2" cy="5.1" r="0.55" fill="#fff"/><circle cx="2.0" cy="8.2" r="0.55" fill="#fff"/><circle cx="5.6" cy="8.2" r="0.55" fill="#fff"/><circle cx="9.2" cy="8.2" r="0.55" fill="#fff"/></svg></button>
+  </span>
+  <a href="https://github.com/SitikPlay/foxhole">GitHub</a>
+</nav>
+</header>
+
+<main id="top">
+  <section class="wrap hero">
+    <div>
+      <h1><span data-t="ru" lang="ru">Shell-доступ без root, который ты контролируешь</span><span data-t="en" lang="en">Shell access without root, under your control</span></h1>
+      <p class="lead"><span data-t="ru" lang="ru">Foxhole запускает маленький сервер с правами shell и даёт выбранным приложениям выполнять shell-команды. Каждое приложение ты разрешаешь вручную и можешь отозвать в один тап.</span><span data-t="en" lang="en">Foxhole starts a small server with shell privileges and lets selected apps run shell commands. You approve each app by hand and can revoke access with one tap.</span></p>
+      <p class="note"><span data-t="ru" lang="ru">Ранний прототип. Работает на Android 8 и выше; спаривание по Wi-Fi — только с Android 11. Проверен не на всех прошивках.</span><span data-t="en" lang="en">Early prototype. Works on Android 8 and up; Wi-Fi pairing only on Android 11+. Not tested on every firmware.</span></p>
+      <div class="actions">
+        <a class="btn btn-main" href="https://github.com/SitikPlay/foxhole/releases/latest"><span data-t="ru" lang="ru">Скачать APK</span><span data-t="en" lang="en">Download APK</span></a>
+        <a class="btn btn-ghost" href="https://github.com/SitikPlay/foxhole"><span data-t="ru" lang="ru">Исходный код</span><span data-t="en" lang="en">Source code</span></a>
+      </div>
+    </div>
+    <img class="art" src="icon.png" alt="Лиса выглядывает из норы: логотип Foxhole" width="512" height="512">
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2><span data-t="ru" lang="ru">Как это работает</span><span data-t="en" lang="en">How it works</span></h2>
+      <ol class="steps">
+        <li>
+          <h3><span data-t="ru" lang="ru">Спарь телефон с самим собой</span><span data-t="en" lang="en">Pair the phone with itself</span></h3>
+          <p><span data-t="ru" lang="ru">Включи беспроводную отладку, открой код в настройках Android и введи порт и код в уведомлении Foxhole. Это делается один раз.</span><span data-t="en" lang="en">Turn on wireless debugging, open the code in Android settings, and enter the port and code in the Foxhole notification. You only do this once.</span></p>
+        </li>
+        <li>
+          <h3><span data-t="ru" lang="ru">Запусти сервер</span><span data-t="en" lang="en">Start the server</span></h3>
+          <p><span data-t="ru" lang="ru">Одна кнопка в приложении, компьютер не нужен. После перезагрузки телефона сервер нужно запустить заново.</span><span data-t="en" lang="en">One button in the app, no computer needed. After the phone restarts, start the server again.</span></p>
+        </li>
+        <li>
+          <h3><span data-t="ru" lang="ru">Разреши нужные приложения</span><span data-t="en" lang="en">Approve the apps you need</span></h3>
+          <p><span data-t="ru" lang="ru">Новое приложение появится в списке ожидающих. Разреши или отклони его; доступ можно выдать и заранее — в списке установленных с поиском.</span><span data-t="en" lang="en">A new app shows up in the pending list. Allow or deny it; you can also approve apps in advance from the searchable installed list.</span></p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2><span data-t="ru" lang="ru">Что разрешено</span><span data-t="en" lang="en">What is allowed</span></h2>
+      <dl class="ops">
+        <div><dt><span data-t="ru" lang="ru">Любая shell-команда</span><span data-t="en" lang="en">Any shell command</span></dt><dd><span data-t="ru" lang="ru">dumpsys, ps, ls, конвейеры и всё остальное — через sh -c от uid 2000.</span><span data-t="en" lang="en">dumpsys, ps, ls, pipelines and anything else — via sh -c as uid 2000.</span></dd></div>
+        <div><dt>ping</dt><dd><span data-t="ru" lang="ru">Проверить, что сервер работает.</span><span data-t="en" lang="en">Check that the server is running.</span></dd></div>
+        <div><dt><span data-t="ru" lang="ru">grant &lt;пакет&gt; &lt;permission&gt;</span><span data-t="en" lang="en">grant &lt;package&gt; &lt;permission&gt;</span></dt><dd><span data-t="ru" lang="ru">Выдать приложению runtime-разрешение.</span><span data-t="en" lang="en">Grant an app a runtime permission.</span></dd></div>
+        <div><dt><span data-t="ru" lang="ru">revoke &lt;пакет&gt; &lt;permission&gt;</span><span data-t="en" lang="en">revoke &lt;package&gt; &lt;permission&gt;</span></dt><dd><span data-t="ru" lang="ru">Забрать разрешение.</span><span data-t="en" lang="en">Take a permission back.</span></dd></div>
+        <div><dt><span data-t="ru" lang="ru">appop &lt;пакет&gt; &lt;OP&gt; &lt;режим&gt;</span><span data-t="en" lang="en">appop &lt;package&gt; &lt;OP&gt; &lt;mode&gt;</span></dt><dd><span data-t="ru" lang="ru">Изменить appops: allow, ignore, deny, default или foreground.</span><span data-t="en" lang="en">Change an app op: allow, ignore, deny, default or foreground.</span></dd></div>
+        <div><dt><span data-t="ru" lang="ru">getsetting &lt;область&gt; &lt;ключ&gt;</span><span data-t="en" lang="en">getsetting &lt;namespace&gt; &lt;key&gt;</span></dt><dd><span data-t="ru" lang="ru">Прочитать системную настройку из global, secure или system.</span><span data-t="en" lang="en">Read a system setting from global, secure or system.</span></dd></div>
+        <div><dt><span data-t="ru" lang="ru">putsetting &lt;область&gt; &lt;ключ&gt; &lt;значение&gt;</span><span data-t="en" lang="en">putsetting &lt;namespace&gt; &lt;key&gt; &lt;value&gt;</span></dt><dd><span data-t="ru" lang="ru">Записать системную настройку.</span><span data-t="en" lang="en">Write a system setting.</span></dd></div>
+      </dl>
+      <p class="muted"><span data-t="ru" lang="ru">Вывод ограничен 128 КиБ, таймаут команды — 20 секунд. Останавливать сервер может только сам менеджер.</span><span data-t="en" lang="en">Output is capped at 128 KiB and commands time out after 20 seconds. Only the manager itself can stop the server.</span></p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2><span data-t="ru" lang="ru">Безопасность</span><span data-t="en" lang="en">Security</span></h2>
+      <ul class="checks">
+        <li><span data-t="ru" lang="ru">Сервер слушает только localhost и принимает запросы по секретному токену.</span><span data-t="en" lang="en">The server listens on localhost only and accepts requests with a secret token.</span></li>
+        <li><span data-t="ru" lang="ru">Доступ привязан к uid приложения, а не к его названию, поэтому подделать его нельзя.</span><span data-t="en" lang="en">Access is tied to the app’s uid, not its name, so it cannot be spoofed.</span></li>
+        <li><span data-t="ru" lang="ru">Каждый запрос попадает в журнал, который можно открыть в приложении.</span><span data-t="en" lang="en">Every request is written to a log you can open in the app.</span></li>
+        <li><span data-t="ru" lang="ru">Без рекламы и сбора данных. Исходный код открыт под GPL-3.0.</span><span data-t="en" lang="en">No ads and no data collection. The source code is open under GPL-3.0.</span></li>
+      </ul>
+      <p class="muted"><span data-t="ru" lang="ru">Права shell широкие, поэтому разрешай только те приложения, которым доверяешь.</span><span data-t="en" lang="en">Shell privileges are broad, so only allow apps you trust.</span></p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2><span data-t="ru" lang="ru">Для разработчиков</span><span data-t="en" lang="en">For developers</span></h2>
+      <p><span data-t="ru" lang="ru">Твоё приложение вызывает провайдер Foxhole. При первом вызове оно получит отказ и появится в списке ожидающих, а после разрешения вызовы заработают. Вызывать нужно не из главного потока.</span><span data-t="en" lang="en">Your app calls the Foxhole provider. The first call is rejected and the app appears in the pending list; after you allow it, calls go through. Do not call it from the main thread.</span></p>
+<pre><code>val uri = Uri.parse("content://com.sitikplay.foxhole.bridge")
+val r = contentResolver.call(uri, "exec", "ping", null)
+val ok = r?.getBoolean("ok") == true
+val text = r?.getString("result")</code></pre>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <span><span data-t="ru" lang="ru">Foxhole, лицензия GPL-3.0</span><span data-t="en" lang="en">Foxhole, GPL-3.0 license</span></span>
+    <span>
+      <a href="https://github.com/SitikPlay/foxhole"><span data-t="ru" lang="ru">Репозиторий</span><span data-t="en" lang="en">Repository</span></a>
+      &nbsp;&nbsp;
+      <a href="https://github.com/SitikPlay/foxhole/blob/main/SECURITY.md"><span data-t="ru" lang="ru">Сообщить об уязвимости</span><span data-t="en" lang="en">Report a vulnerability</span></a>
+    </span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var T = {
+    ru: {
+      title: 'Foxhole: shell-доступ без root',
+      desc: 'Открытый менеджер shell-доступа для Android без root. Приложения получают shell-команды только после твоего разрешения.',
+      alt: 'Лиса выглядывает из норы: логотип Foxhole'
+    },
+    en: {
+      title: 'Foxhole: shell access without root',
+      desc: 'Open-source shell access manager for Android, no root needed. Apps can run shell commands only after you approve them.',
+      alt: 'A fox peeking out of a burrow: the Foxhole logo'
+    }
+  };
+  var buttons = document.querySelectorAll('.lang button');
+  function apply(l) {
+    document.documentElement.lang = l;
+    document.title = T[l].title;
+    var meta = document.querySelector('meta[name="description"]');
+    if (meta) { meta.setAttribute('content', T[l].desc); }
+    var img = document.querySelector('.art');
+    if (img) { img.alt = T[l].alt; }
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute('aria-pressed', buttons[i].getAttribute('data-lang') === l ? 'true' : 'false');
+    }
+  }
+  for (var i = 0; i < buttons.length; i++) {
+    buttons[i].addEventListener('click', function () {
+      var l = this.getAttribute('data-lang');
+      try { localStorage.setItem('foxhole-lang', l); } catch (e) {}
+      apply(l);
+    });
+  }
+  apply(window.__foxholeLang || 'ru');
+})();
+</script>
+</body>
+</html>

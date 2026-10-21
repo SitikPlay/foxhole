@@ -1,0 +1,21 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Тёмная тема: те же атрибуты, значения берутся из values-night/foxhole_colors.xml -->
+    <style name="Base.Theme.Foxhole" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/fh_primary</item>
+        <item name="colorOnPrimary">@color/fh_on_primary</item>
+        <item name="colorPrimaryContainer">@color/fh_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/fh_on_primary_container</item>
+
+        <item name="colorSecondary">@color/fh_secondary</item>
+        <item name="colorOnSecondary">@color/fh_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/fh_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/fh_on_secondary_container</item>
+
+        <item name="colorTertiary">@color/fh_tertiary</item>
+        <item name="colorOnTertiary">@color/fh_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/fh_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/fh_on_tertiary_container</item>
+    </style>
+
+    <style name="Theme.Foxhole" parent="Base.Theme.Foxhole" />
+</resources>

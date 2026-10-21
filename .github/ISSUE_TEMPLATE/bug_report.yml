@@ -1,0 +1,73 @@
+name: Bug report
+description: Сообщить об ошибке в Foxhole
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за отчёт! **Не сообщай об уязвимостях здесь** — для этого есть
+        вкладка Security → Report a vulnerability (см. SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: Версия Foxhole
+      placeholder: "1.1"
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Версия Android и прошивка
+      placeholder: "Android 14, Pixel 7 / One UI 6, Samsung S23"
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: На каком шаге проблема
+      options:
+        - Установка
+        - Спаривание по Wi-Fi
+        - Запуск сервера
+        - Запуск с ПК (start.sh)
+        - Выдача доступа приложению
+        - Команды / вывод
+        - Другое
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Как воспроизвести
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемое поведение
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Что произошло на самом деле
+      description: Если есть текст ошибки или Snackbar — приложи его.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Логи (необязательно)
+      description: "`adb logcat -s Foxhole` или `/data/local/tmp/foxhole.log`"
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Проверки
+      options:
+        - label: Я не публикую здесь сведения об уязвимости
+          required: true

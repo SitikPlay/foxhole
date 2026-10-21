@@ -1,0 +1,31 @@
+name: Feature request
+description: Предложить улучшение
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую задачу это решает
+      placeholder: "Мне неудобно, что ..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Предлагаемое решение
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Альтернативы
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Область
+      options:
+        - label: UI / дизайн
+        - label: Запуск / спаривание
+        - label: Безопасность
+        - label: API для других приложений
+        - label: Документация
