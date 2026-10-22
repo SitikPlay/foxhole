@@ -111,6 +111,14 @@ html[lang="en"] [data-t="ru"] { display: none; }
 .steps h3 { margin: 0 0 0.25rem; font-size: 1.2rem; font-weight: 600; }
 .steps p { margin: 0; color: var(--mist); }
 
+.guides { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 3.5rem 3rem; }
+.guide h3.guide-title { margin: 0 0 0.35rem; font: 700 1.25rem/1.2 var(--display); }
+.guide .tag { margin: 0 0 1.75rem; color: var(--mist); font-size: 0.95rem; }
+.guide .steps { max-width: none; }
+.guides + .muted { margin-top: 2.5rem; }
+.guide .steps code { font-family: var(--mono); font-size: 0.9em; color: var(--cream); overflow-wrap: anywhere; }
+.guide .steps pre { margin: 0.9rem 0 0; font-size: 0.82rem; max-width: 100%; }
+.guide .steps a { color: var(--cream); }
 .ops { margin: 0 0 1.5rem; max-width: 52rem; }
 .ops div { display: grid; grid-template-columns: minmax(0, 20rem) 1fr; gap: 1.5rem; padding: 0.9rem 0; border-bottom: 1px solid var(--ring); }
 .ops dt { font-family: var(--mono); font-size: 0.95rem; color: var(--fox); overflow-wrap: anywhere; }
@@ -173,7 +181,7 @@ pre {
     <div>
       <h1><span data-t="ru" lang="ru">Shell-доступ без root, который ты контролируешь</span><span data-t="en" lang="en">Shell access without root, under your control</span></h1>
       <p class="lead"><span data-t="ru" lang="ru">Foxhole запускает маленький сервер с правами shell и даёт выбранным приложениям выполнять shell-команды. Каждое приложение ты разрешаешь вручную и можешь отозвать в один тап.</span><span data-t="en" lang="en">Foxhole starts a small server with shell privileges and lets selected apps run shell commands. You approve each app by hand and can revoke access with one tap.</span></p>
-      <p class="note"><span data-t="ru" lang="ru">Ранний прототип. Работает на Android 8 и выше; спаривание по Wi-Fi — только с Android 11. Проверен не на всех прошивках.</span><span data-t="en" lang="en">Early prototype. Works on Android 8 and up; Wi-Fi pairing only on Android 11+. Not tested on every firmware.</span></p>
+      <p class="note"><span data-t="ru" lang="ru">Версия 1.1.0. Работает на Android 8 и выше; спаривание по Wi-Fi — только с Android 11. Проверено не на всех прошивках.</span><span data-t="en" lang="en">Version 1.1.0. Works on Android 8 and up; Wi-Fi pairing only on Android 11+. Not tested on every firmware.</span></p>
       <div class="actions">
         <a class="btn btn-main" href="https://github.com/SitikPlay/foxhole/releases/latest"><span data-t="ru" lang="ru">Скачать APK</span><span data-t="en" lang="en">Download APK</span></a>
         <a class="btn btn-ghost" href="https://github.com/SitikPlay/foxhole"><span data-t="ru" lang="ru">Исходный код</span><span data-t="en" lang="en">Source code</span></a>
@@ -182,23 +190,64 @@ pre {
     <img class="art" src="icon.png" alt="Лиса выглядывает из норы: логотип Foxhole" width="512" height="512">
   </section>
 
-  <section class="section">
+  <section class="section" id="install">
     <div class="wrap">
-      <h2><span data-t="ru" lang="ru">Как это работает</span><span data-t="en" lang="en">How it works</span></h2>
-      <ol class="steps">
+      <h2><span data-t="ru" lang="ru">Установка и запуск</span><span data-t="en" lang="en">Install and launch</span></h2>
+      <div class="guides">
+        <div class="guide">
+          <h3 class="guide-title"><span data-t="ru" lang="ru">Без компьютера</span><span data-t="en" lang="en">Without a computer</span></h3>
+          <p class="tag"><span data-t="ru" lang="ru">Android 11 и выше</span><span data-t="en" lang="en">Android 11 and up</span></p>
+          <ol class="steps">
         <li>
-          <h3><span data-t="ru" lang="ru">Спарь телефон с самим собой</span><span data-t="en" lang="en">Pair the phone with itself</span></h3>
-          <p><span data-t="ru" lang="ru">Включи беспроводную отладку, открой код в настройках Android и введи порт и код в уведомлении Foxhole. Это делается один раз.</span><span data-t="en" lang="en">Turn on wireless debugging, open the code in Android settings, and enter the port and code in the Foxhole notification. You only do this once.</span></p>
+          <h3><span data-t="ru" lang="ru">Установи и открой Foxhole</span><span data-t="en" lang="en">Install and open Foxhole</span></h3>
+          <p><span data-t="ru" lang="ru">Скачай APK со страницы релизов, установи и открой приложение.</span><span data-t="en" lang="en">Download the APK from the releases page, install it and open the app.</span></p>
         </li>
         <li>
-          <h3><span data-t="ru" lang="ru">Запусти сервер</span><span data-t="en" lang="en">Start the server</span></h3>
-          <p><span data-t="ru" lang="ru">Одна кнопка в приложении, компьютер не нужен. После перезагрузки телефона сервер нужно запустить заново.</span><span data-t="en" lang="en">One button in the app, no computer needed. After the phone restarts, start the server again.</span></p>
+          <h3><span data-t="ru" lang="ru">Включи беспроводную отладку</span><span data-t="en" lang="en">Turn on wireless debugging</span></h3>
+          <p><span data-t="ru" lang="ru">Настройки → Для разработчиков → Беспроводная отладка. Нужен Wi-Fi. Если раздела нет, семь раз нажми на «Номер сборки» в «О телефоне».</span><span data-t="en" lang="en">Settings → Developer options → Wireless debugging. You need Wi-Fi. If there is no such section, tap Build number seven times in About phone.</span></p>
         </li>
         <li>
-          <h3><span data-t="ru" lang="ru">Разреши нужные приложения</span><span data-t="en" lang="en">Approve the apps you need</span></h3>
-          <p><span data-t="ru" lang="ru">Новое приложение появится в списке ожидающих. Разреши или отклони его; доступ можно выдать и заранее — в списке установленных с поиском.</span><span data-t="en" lang="en">A new app shows up in the pending list. Allow or deny it; you can also approve apps in advance from the searchable installed list.</span></p>
+          <h3><span data-t="ru" lang="ru">Открой окно с кодом</span><span data-t="en" lang="en">Open the pairing window</span></h3>
+          <p><span data-t="ru" lang="ru">Нажми «Подключение устройства по коду». Появятся шестизначный код и порт.</span><span data-t="en" lang="en">Tap Pair device with pairing code. A six-digit code and a port appear.</span></p>
         </li>
-      </ol>
+        <li>
+          <h3><span data-t="ru" lang="ru">Введи порт и код в уведомлении</span><span data-t="en" lang="en">Enter the port and code in the notification</span></h3>
+          <p><span data-t="ru" lang="ru">Потяни шторку, впиши порт и код в уведомлении Foxhole и нажми «Спарить». Сервер запустится сам. Окно с кодом закрывать не нужно.</span><span data-t="en" lang="en">Pull down the shade, type the port and code into the Foxhole notification and tap Pair. The server starts by itself. Keep the pairing window open.</span></p>
+        </li>
+        <li>
+          <h3><span data-t="ru" lang="ru">Готово</span><span data-t="en" lang="en">Done</span></h3>
+          <p><span data-t="ru" lang="ru">Теперь можно разрешать приложения.</span><span data-t="en" lang="en">Now you can approve apps.</span></p>
+        </li>
+          </ol>
+        </div>
+        <div class="guide">
+          <h3 class="guide-title"><span data-t="ru" lang="ru">С компьютером</span><span data-t="en" lang="en">With a computer</span></h3>
+          <p class="tag"><span data-t="ru" lang="ru">Android 8 и выше</span><span data-t="en" lang="en">Android 8 and up</span></p>
+          <ol class="steps">
+        <li>
+          <h3><span data-t="ru" lang="ru">Подключи телефон кабелем</span><span data-t="en" lang="en">Connect the phone with a cable</span></h3>
+          <p><span data-t="ru" lang="ru">Соедини телефон с компьютером USB-кабелем.</span><span data-t="en" lang="en">Plug the phone into the computer with a USB cable.</span></p>
+        </li>
+        <li>
+          <h3><span data-t="ru" lang="ru">Включи отладку по USB</span><span data-t="en" lang="en">Turn on USB debugging</span></h3>
+          <p><span data-t="ru" lang="ru">Включи режим разработчика (семь нажатий на «Номер сборки»), затем «Отладка по USB» в разделе «Для разработчиков». На Xiaomi, Redmi и POCO включи ещё «Отладка по USB (настройки безопасности)». В окне на телефоне разреши отладку для этого компьютера.</span><span data-t="en" lang="en">Enable developer mode (tap Build number seven times), then turn on USB debugging in Developer options. On Xiaomi, Redmi and POCO also turn on USB debugging (Security settings). Allow debugging for this computer in the dialog on the phone.</span></p>
+        </li>
+        <li>
+          <h3><span data-t="ru" lang="ru">Скопируй команду из Foxhole</span><span data-t="en" lang="en">Copy the command from Foxhole</span></h3>
+          <p><span data-t="ru" lang="ru">Команду для запуска можно получить в приложении: выбери запуск через компьютер и скопируй её. Она зависит от телефона, поэтому бери её именно из приложения.</span><span data-t="en" lang="en">You can get the launch command in the app: choose launch through a computer and copy it. It depends on the phone, so take it from the app itself.</span></p>
+        </li>
+        <li>
+          <h3><span data-t="ru" lang="ru">Выполни её в ADB</span><span data-t="en" lang="en">Run it in ADB</span></h3>
+          <p><span data-t="ru" lang="ru">Скачай <a href="https://developer.android.com/tools/releases/platform-tools">platform-tools</a>, открой терминал в их папке, вставь команду и нажми Enter. В Windows PowerShell перед командой добавь <code>.\</code>, то есть <code>.\adb shell …</code>.</span><span data-t="en" lang="en">Download <a href="https://developer.android.com/tools/releases/platform-tools">platform-tools</a>, open a terminal in its folder, paste the command and press Enter. In Windows PowerShell put <code>.\</code> before the command, like <code>.\adb shell …</code>.</span></p>
+        </li>
+        <li>
+          <h3><span data-t="ru" lang="ru">Готово</span><span data-t="en" lang="en">Done</span></h3>
+          <p><span data-t="ru" lang="ru">Сервер запущен, теперь можно разрешать приложения.</span><span data-t="en" lang="en">The server is running, now you can approve apps.</span></p>
+        </li>
+          </ol>
+        </div>
+      </div>
+      <p class="muted"><span data-t="ru" lang="ru">После перезагрузки телефона сервер нужно запустить заново.</span><span data-t="en" lang="en">After the phone restarts, start the server again.</span></p>
     </div>
   </section>
 
