@@ -9,7 +9,7 @@
 
 Открытый менеджер shell-доступа для Android без root. Foxhole запускает небольшой серверный процесс с правами `shell` (uid 2000) и даёт приложениям, которым ты доверяешь, выполнять команды от имени shell.
 
-> Статус: ранний прототип. Не публикуется в Google Play.
+> Статус: Первый релиз. Возможны баги
 
 *English: Foxhole is an open-source, root-free shell-access broker for Android. It runs a small server process as the `shell` user and lets apps you approve run shell commands as that user. Prototype, GPL-3.0.*
 
