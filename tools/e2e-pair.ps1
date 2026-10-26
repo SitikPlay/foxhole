@@ -161,6 +161,10 @@ function Ensure-NotificationPermission {
     if ($dump -match "POST_NOTIFICATIONS: granted=true") { return }
     Sh "am start -S -n $pkg/.MainActivity" | Out-Null
     Start-Sleep -Seconds 2
+    if ((Invoke-Acc "hastext" @{ text = "Открыть настройки отладки" }) -notmatch "found=[1-9]") {
+        Invoke-Acc "clicktext" @{ text = "Запуск без ПК" } | Out-Null
+        Start-Sleep -Milliseconds 600
+    }
     Invoke-Acc "clicktext" @{ text = "отладки" } | Out-Null
     Start-Sleep -Seconds 1
     Invoke-Acc "clickid" @{ id = "com.android.permissioncontroller:id/permission_allow_button" } | Out-Null
@@ -293,13 +297,17 @@ function Test-PcScript {
     $path = "/storage/emulated/0/Android/data/$pkg/files/start.sh"
 
     Show-App
-    for ($i = 0; $i -lt 3; $i++) {
-        Invoke-Acc "clicktext2" @{ text = "Запуск с ПК" } | Out-Null
-        Start-Sleep -Milliseconds 500
-        if ((Invoke-Acc "hastext" @{ text = "Создать файл запуска" }) -match "found=[1-9]") { break }
+    if ((Invoke-Acc "hastext" @{ text = "Посмотреть команду" }) -notmatch "found=[1-9]") {
+        Invoke-Acc "clicktext" @{ text = "Запуск с ПК" } | Out-Null
+        Start-Sleep -Milliseconds 600
     }
-    Invoke-Acc "clicktext2" @{ text = "Создать файл запуска" } | Out-Null
-    Start-Sleep -Seconds 2
+    for ($i = 0; $i -lt 3; $i++) {
+        Invoke-Acc "clicktext" @{ text = "Посмотреть команду" } | Out-Null
+        Start-Sleep -Seconds 1
+        if ((Sh "test -f '$path' && echo ok") -match "ok") { break }
+    }
+    Invoke-Acc "back" | Out-Null
+    Start-Sleep -Milliseconds 400
 
     Assert ((Sh "test -f '$path' && echo ok") -match "ok") "start.sh не создан приложением"
     Assert ((Sh "cat '$path'") -match "app_process") "start.sh без app_process"

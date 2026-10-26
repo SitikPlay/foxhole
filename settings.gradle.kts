@@ -1,4 +1,3 @@
-
 pluginManagement {
     repositories {
         google()
@@ -26,3 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "Foxhole"
 
 include(":app")
+

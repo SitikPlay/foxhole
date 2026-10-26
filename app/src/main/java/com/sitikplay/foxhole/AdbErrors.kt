@@ -1,15 +1,9 @@
-/*
- * SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright (C) 2026 SitikPlay
- */
-
 package com.sitikplay.foxhole
 
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.util.concurrent.TimeoutException
 
-/** Человекочитаемые описания ошибок ADB вместо Java-стеков. */
 fun friendlyAdbError(e: Throwable): String {
     val raw = e.message?.takeIf { it.isNotBlank() }.orEmpty()
     val stale = raw.contains("timed out", true) ||
@@ -30,3 +24,4 @@ fun friendlyAdbError(e: Throwable): String {
         else -> "Неизвестная ошибка ADB"
     }
 }
+

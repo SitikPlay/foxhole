@@ -1,5 +1,4 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Тёмная тема: те же атрибуты, значения берутся из values-night/foxhole_colors.xml -->
     <style name="Base.Theme.Foxhole" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/fh_primary</item>
         <item name="colorOnPrimary">@color/fh_on_primary</item>
@@ -19,3 +18,4 @@
 
     <style name="Theme.Foxhole" parent="Base.Theme.Foxhole" />
 </resources>
+

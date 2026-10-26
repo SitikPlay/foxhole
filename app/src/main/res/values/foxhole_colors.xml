@@ -2,7 +2,6 @@
 <resources>
     <color name="foxhole_icon_background">#0C1A43</color>
 
-    <!-- Светлая палитра -->
     <color name="fh_primary">#1D3A8F</color>
     <color name="fh_on_primary">#FFFFFF</color>
     <color name="fh_primary_container">#DEE0FF</color>
@@ -18,3 +17,4 @@
     <color name="fh_tertiary_container">#FFDEA6</color>
     <color name="fh_on_tertiary_container">#261900</color>
 </resources>
+

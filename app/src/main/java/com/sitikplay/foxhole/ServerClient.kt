@@ -1,8 +1,3 @@
-/*
- * SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright (C) 2026 SitikPlay
- */
-
 package com.sitikplay.foxhole
 
 import android.content.Context
@@ -10,12 +5,10 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.security.SecureRandom
 
-/** Общение с серверным процессом (uid shell) по localhost. */
 object ServerClient {
 
     private val tokenLock = Any()
 
-    /** Токен генерируется один раз и кладётся в start.sh. */
     fun token(ctx: Context): String = synchronized(tokenLock) {
         val prefs = ctx.getSharedPreferences("foxhole", Context.MODE_PRIVATE)
         prefs.getString("token", null)?.let { return@synchronized it }
@@ -26,16 +19,11 @@ object ServerClient {
         t
     }
 
-    /** Выбрасывает текущий токен и возвращает новый. Сервер подхватит его после перезапуска. */
     fun resetToken(ctx: Context): String = synchronized(tokenLock) {
         ctx.getSharedPreferences("foxhole", Context.MODE_PRIVATE).edit().remove("token").apply()
         token(ctx)
     }
 
-    /**
-     * Блокирующий запрос. Нельзя вызывать из главного потока.
-     * Ответ всегда начинается с "OK" или "ERR".
-     */
     fun request(ctx: Context, cmd: String): String {
         return try {
             Socket().use { s ->
@@ -52,3 +40,4 @@ object ServerClient {
         }
     }
 }
+

@@ -1,8 +1,3 @@
-/*
- * SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright (C) 2026 SitikPlay
- */
-
 package com.sitikplay.foxhole
 
 import org.junit.Assert.assertEquals
@@ -37,4 +32,12 @@ class PairInputTest {
     fun rejectsInvalidPort() {
         assertTrue(parsePairInput("70000 842308", 27183) is PairParse.Error)
     }
+
+    @Test
+    fun pairPortErrorFlagsReservedPortOnly() {
+        val err = pairPortError(27183, 27183)
+        assertTrue(err?.contains("порт сервера") == true)
+        assertEquals(null, pairPortError(41221, 27183))
+    }
 }
+

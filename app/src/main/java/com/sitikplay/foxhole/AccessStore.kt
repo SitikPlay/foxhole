@@ -1,8 +1,3 @@
-/*
- * SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright (C) 2026 SitikPlay
- */
-
 package com.sitikplay.foxhole
 
 import android.content.Context
@@ -10,13 +5,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * Хранилище доступа: кому разрешено, кто ждёт решения, журнал запросов.
- * Ключ доступа это uid вызывающего (его нельзя подделать), имя пакета только для показа.
- */
 object AccessStore {
 
-    data class App(val uid: Int, val pkg: String)
+    data class App(val uid: Int, val pkg: String, val level: AclLevel = AclLevel.FULL)
 
     private const val ALLOWED = "allowed"
     private const val PENDING = "pending"
@@ -27,13 +18,22 @@ object AccessStore {
     private fun prefs(ctx: Context) =
         ctx.getSharedPreferences("foxhole_access", Context.MODE_PRIVATE)
 
-    private fun encode(a: App) = "${a.uid}|${a.pkg}"
+    private fun encode(a: App) = "${a.uid}|${a.pkg}|${a.level.name}"
 
     private fun decode(s: String): App? {
-        val i = s.indexOf('|')
-        if (i < 0) return null
-        val uid = s.substring(0, i).toIntOrNull() ?: return null
-        return App(uid, s.substring(i + 1))
+        val parts = s.split('|')
+        if (parts.size < 2) return null
+        val uid = parts[0].toIntOrNull() ?: return null
+        val level = if (parts.size >= 3) {
+            try {
+                AclLevel.valueOf(parts[2])
+            } catch (e: Exception) {
+                AclLevel.FULL
+            }
+        } else {
+            AclLevel.FULL
+        }
+        return App(uid, parts[1], level)
     }
 
     private fun read(ctx: Context, key: String): MutableSet<String> =
@@ -55,10 +55,14 @@ object AccessStore {
     fun isAllowed(ctx: Context, uid: Int): Boolean =
         allowed(ctx).any { it.uid == uid }
 
-    /**
-     * Запоминает приложение, которое просит доступ. Список ограничен, чтобы его нельзя было засорить.
-     * true — заявка добавлена, false — приложение уже разрешено или список ожидания полон.
-     */
+    @Synchronized
+    fun level(ctx: Context, uid: Int): AclLevel =
+        allowed(ctx).firstOrNull { it.uid == uid }?.level ?: AclLevel.FULL
+
+    @Synchronized
+    fun isPending(ctx: Context, uid: Int): Boolean =
+        pending(ctx).any { it.uid == uid }
+
     @Synchronized
     fun addPending(ctx: Context, app: App): Boolean {
         if (isAllowed(ctx, app.uid)) return false
@@ -71,15 +75,28 @@ object AccessStore {
     }
 
     @Synchronized
-    fun allow(ctx: Context, app: App) {
+    fun allow(ctx: Context, app: App, level: AclLevel = AclLevel.FULL) {
         val pending = read(ctx, PENDING)
         pending.removeAll { decode(it)?.uid == app.uid }
         write(ctx, PENDING, pending)
         val allowed = read(ctx, ALLOWED)
         allowed.removeAll { decode(it)?.uid == app.uid }
-        allowed.add(encode(app))
+        allowed.add(encode(App(app.uid, app.pkg, level)))
         write(ctx, ALLOWED, allowed)
-        log(ctx, "${app.pkg} РАЗРЕШЕНО пользователем")
+        if (level == AclLevel.FULL) {
+            log(ctx, "${app.pkg} РАЗРЕШЕНО пользователем")
+        } else {
+            log(ctx, "${app.pkg} РАЗРЕШЕНО пользователем (уровень ${level.label})")
+        }
+    }
+
+    @Synchronized
+    fun setLevel(ctx: Context, app: App, level: AclLevel) {
+        val allowed = read(ctx, ALLOWED)
+        allowed.removeAll { decode(it)?.uid == app.uid }
+        allowed.add(encode(App(app.uid, app.pkg, level)))
+        write(ctx, ALLOWED, allowed)
+        log(ctx, "${app.pkg} уровень доступа: ${level.label}")
     }
 
     @Synchronized
@@ -114,3 +131,4 @@ object AccessStore {
         prefs(ctx).edit().remove(LOG).apply()
     }
 }
+

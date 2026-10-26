@@ -1,8 +1,16 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Стабильные id: нужны, чтобы ввод и вывод переживали поворот экрана. -->
     <item name="foxhole_pair_port" type="id"/>
     <item name="foxhole_pair_code" type="id"/>
     <item name="foxhole_cmd_input" type="id"/>
     <item name="foxhole_output" type="id"/>
+    <item name="foxhole_filter_user" type="id"/>
+    <item name="foxhole_filter_system" type="id"/>
+    <item name="foxhole_filter_all" type="id"/>
+    <item name="foxhole_tab_uninstall" type="id"/>
+    <item name="foxhole_tab_restore" type="id"/>
+    <item name="foxhole_tab_access" type="id"/>
+    <item name="foxhole_tab_installed" type="id"/>
+    <item name="foxhole_pane_body" type="id"/>
 </resources>
+

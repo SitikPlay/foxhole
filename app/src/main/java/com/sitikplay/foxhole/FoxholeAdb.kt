@@ -1,8 +1,3 @@
-/*
- * SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright (C) 2026 SitikPlay
- */
-
 package com.sitikplay.foxhole
 
 import android.content.Context
@@ -34,12 +29,6 @@ import java.security.cert.CertificateFactory
 import java.security.spec.PKCS8EncodedKeySpec
 import java.util.Date
 
-/**
- * Клиент ADB внутри приложения (через libadb-android).
- * Ключ и сертификат хранятся в SharedPreferences: после спаривания adbd
- * запоминает ИМЕННО этот ключ, новый ключ = нужно спаривать заново.
- * Для прототипа ок, позже лучше перенести в Android Keystore.
- */
 class FoxholeAdb private constructor(ctx: Context) : AbsAdbConnectionManager() {
 
     private val privateKey: PrivateKey
@@ -60,8 +49,6 @@ class FoxholeAdb private constructor(ctx: Context) : AbsAdbConnectionManager() {
                     ByteArrayInputStream(Base64.decode(storedCert, Base64.NO_WRAP))
                 )
             } catch (e: Exception) {
-                // Битые данные в prefs: выбрасываем их и генерируем ключ заново,
-                // иначе FoxholeAdb был бы сломан навсегда (конструктор падал бы на каждом get()).
                 prefs.edit().remove("key").remove("cert").apply()
                 null
             }
@@ -81,7 +68,7 @@ class FoxholeAdb private constructor(ctx: Context) : AbsAdbConnectionManager() {
 
     override fun getCertificate(): Certificate = certificate
 
-    override fun getDeviceName(): String = "RawBridge"
+    override fun getDeviceName(): String = "Foxhole"
 
     companion object {
         @Volatile
@@ -92,12 +79,23 @@ class FoxholeAdb private constructor(ctx: Context) : AbsAdbConnectionManager() {
                 instance ?: FoxholeAdb(ctx.applicationContext).also { instance = it }
             }
 
-        /** Удаляет сохранённые ключ и сертификат: после этого нужно спариваться заново. */
         fun forget(ctx: Context) {
             synchronized(this) {
                 instance = null
                 ctx.getSharedPreferences("rb_adb", Context.MODE_PRIVATE).edit().clear().apply()
             }
+        }
+
+        fun hasKey(ctx: Context): Boolean {
+            val prefs = ctx.getSharedPreferences("rb_adb", Context.MODE_PRIVATE)
+            return prefs.getString("key", null) != null &&
+                prefs.getString("cert", null) != null &&
+                prefs.getBoolean("paired", false)
+        }
+
+        fun markPaired(ctx: Context) {
+            ctx.getSharedPreferences("rb_adb", Context.MODE_PRIVATE)
+                .edit().putBoolean("paired", true).apply()
         }
 
         private fun generate(): Pair<PrivateKey, Certificate> {
@@ -116,7 +114,7 @@ class FoxholeAdb private constructor(ctx: Context) : AbsAdbConnectionManager() {
                 "SubjectKeyIdentifier",
                 SubjectKeyIdentifierExtension(KeyIdentifier(publicKey).identifier)
             )
-            val name = X500Name("CN=RawBridge")
+            val name = X500Name("CN=Foxhole")
             extensions.set("PrivateKeyUsage", PrivateKeyUsageExtension(notBefore, notAfter))
 
             val info = X509CertInfo()
@@ -135,3 +133,4 @@ class FoxholeAdb private constructor(ctx: Context) : AbsAdbConnectionManager() {
         }
     }
 }
+

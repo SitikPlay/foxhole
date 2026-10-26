@@ -2,8 +2,6 @@ plugins {
     alias(libs.plugins.android.application)
 }
 
-// Подпись release-сборки из переменных окружения (задаются в GitHub Actions).
-// Локально переменных нет — APK собирается неподписанным.
 val keystoreFile: String? = System.getenv("KEYSTORE_FILE")
 
 android {
@@ -14,12 +12,10 @@ android {
 
     defaultConfig {
         applicationId = "com.sitikplay.foxhole"
-        // Android 8 (API 26): через ПК сервер запускается на любой поддерживаемой
-        // версии. Спаривание по Wi-Fi (adb pair) есть только с Android 11 (API 30).
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -37,8 +33,6 @@ android {
 
     buildTypes {
         release {
-            // Сервер (com.sitikplay.foxhole.Server) запускается через app_process по имени
-            // класса — обфускация/стриппинг сломает запуск. Правила: keepRules/rules.keep.
             optimization {
                 enable = false
             }
@@ -62,4 +56,5 @@ dependencies {
     implementation("com.github.MuntashirAkon:libadb-android:3.1.1")
     implementation("com.github.MuntashirAkon:sun-security-android:1.1")
     implementation("org.conscrypt:conscrypt-android:2.5.3")
+    implementation("androidx.work:work-runtime-ktx:2.10.0")
 }

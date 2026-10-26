@@ -1,8 +1,3 @@
-/*
- * SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright (C) 2026 SitikPlay
- */
-
 package com.sitikplay.foxhole
 
 import java.net.InetAddress
@@ -14,10 +9,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
-/**
- * Запускается через app_process от имени shell (uid 2000).
- * Слушает только 127.0.0.1, требует токен, выполняет команды от uid 2000 (sh -c).
- */
 object Server {
     const val PORT = 27183
 
@@ -67,6 +58,10 @@ object Server {
             writer.write(reply)
             writer.newLine()
             writer.flush()
+            if (reply == "OK stopping") {
+                Thread.sleep(200)
+                System.exit(0)
+            }
         }
     }
 
@@ -80,7 +75,6 @@ object Server {
 
             "stop" -> {
                 if (p.size != 1) return bad
-                Thread { Thread.sleep(200); System.exit(0) }.start()
                 "OK stopping"
             }
 
@@ -99,7 +93,6 @@ object Server {
                     run("settings", "get", p[1], p[2])
                 else bad
 
-            // limit = 4: значение настройки может содержать пробелы.
             "putsetting" -> {
                 val a = trimmed.split(WS, limit = 4)
                 if (a.size == 4 && a[1] in NAMESPACES && KEY.matches(a[2]) && VALUE.matches(a[3]))
@@ -107,8 +100,6 @@ object Server {
                 else bad
             }
 
-            // Всё остальное — произвольная shell-команда от uid 2000:
-            // dumpsys, ps, ls, piped-команды и т.д.
             else -> run("sh", "-c", trimmed)
         }
     }
@@ -124,7 +115,6 @@ object Server {
                     text.set(out)
                     truncated.set(cut)
                 } catch (e: Exception) {
-                    // Процесс убит по таймауту — поток чтения просто завершается.
                 }
             }.apply { isDaemon = true; start() }
             if (!proc.waitFor(CMD_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
@@ -143,10 +133,6 @@ object Server {
         }
     }
 
-    /**
-     * Читает не больше MAX_OUTPUT символов. Остаток продолжает вычитывать
-     * в никуда: иначе процесс упрётся в заполненный pipe и получит ложный таймаут.
-     */
     private fun readLimited(reader: java.io.Reader): Pair<String, Boolean> {
         val sb = StringBuilder()
         val buf = CharArray(8192)
@@ -165,3 +151,4 @@ object Server {
         return sb.toString().trim() to truncated
     }
 }
+

@@ -1,8 +1,3 @@
-/*
- * SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright (C) 2026 SitikPlay
- */
-
 package com.sitikplay.foxhole
 
 import android.app.Notification
@@ -25,14 +20,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
-/**
- * Спаривание без ПК.
- *
- * Окно настроек держит порт спаривания открытым только пока оно в фокусе.
- * Шторка уведомлений не забирает фокус у активности, поэтому код можно ввести
- * в ответе на уведомление, не сворачивая настройки. Ответ приходит сюда,
- * и TLS-спаривание выполняется, пока системное окно ещё живо.
- */
 class PairService : Service() {
 
     private val worker = Executors.newSingleThreadExecutor()
@@ -107,6 +94,7 @@ class PairService : Service() {
     }
 
     private fun succeed() {
+        FoxholeAdb.markPaired(this)
         val notification = baseNotification()
             .setContentTitle("Спарено")
             .setContentText("Нажми, чтобы открыть Foxhole и запустить сервер")
@@ -239,7 +227,6 @@ class PairService : Service() {
     }
 }
 
-/** Принимает ответ из уведомления и передаёт его сервису. */
 class PairActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val results = RemoteInput.getResultsFromIntent(intent) ?: return
@@ -251,3 +238,4 @@ class PairActionReceiver : BroadcastReceiver() {
         ContextCompat.startForegroundService(context, service)
     }
 }
+

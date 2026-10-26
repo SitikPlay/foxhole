@@ -4,3 +4,4 @@
     <foreground android:drawable="@drawable/foxhole_foreground"/>
     <monochrome android:drawable="@drawable/foxhole_monochrome"/>
 </adaptive-icon>
+

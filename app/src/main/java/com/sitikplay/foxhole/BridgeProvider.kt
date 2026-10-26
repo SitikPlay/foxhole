@@ -1,8 +1,3 @@
-/*
- * SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright (C) 2026 SitikPlay
- */
-
 package com.sitikplay.foxhole
 
 import android.content.ContentProvider
@@ -12,14 +7,6 @@ import android.net.Uri
 import android.os.Binder
 import android.os.Bundle
 
-/**
- * Точка входа для сторонних приложений:
- *   contentResolver.call(Uri.parse("content://com.sitikplay.foxhole.bridge"), "exec", "ping", null)
- * Ответ: Bundle с "ok" (Boolean) и "result" (String).
- *
- * Неизвестное приложение получает отказ и попадает в список ожидающих:
- * пользователь решает в самом Foxhole.
- */
 class BridgeProvider : ContentProvider() {
 
     override fun onCreate(): Boolean = true
@@ -39,25 +26,38 @@ class BridgeProvider : ContentProvider() {
         val cmd = arg?.trim().orEmpty()
         if (method != "exec" || cmd.isEmpty()) return fail("ERR неверный вызов")
 
-        // Протокол — ровно одна строка; иначе вторая часть молча потеряется на сервере.
         if (cmd.contains('\n') || cmd.contains('\r')) {
             AccessStore.log(ctx, "$pkg ОТКАЗ (многострочная команда)")
             return fail("ERR команда должна быть одной строкой")
         }
 
         if (!AccessStore.isAllowed(ctx, uid)) {
+            val wasPending = AccessStore.isPending(ctx, uid)
             val added = AccessStore.addPending(ctx, AccessStore.App(uid, pkg))
             AccessStore.log(ctx, "$pkg ОТКАЗ (нет разрешения): $cmd")
+            if (added && !wasPending) {
+                AccessNotifications.notifyPending(ctx, AccessStore.App(uid, pkg))
+            }
             return fail(
                 if (added) "ERR нет разрешения: открой Foxhole и разреши это приложение"
                 else "ERR нет разрешения, список ожидания переполнен"
             )
         }
 
-        // Останавливать сервер сторонним приложениям нельзя.
         if (cmd.split(Regex("\\s+")).first() == "stop") {
             AccessStore.log(ctx, "$pkg ОТКАЗ (запрещённая операция): $cmd")
             return fail("ERR операция запрещена")
+        }
+
+        val need = Acl.classify(cmd)
+        val have = AccessStore.level(ctx, uid)
+        if (need == AclLevel.PERMISSIONS && have == AclLevel.READ ||
+            need == AclLevel.FULL && have != AclLevel.FULL
+        ) {
+            AccessStore.log(
+                ctx, "$pkg ОТКАЗ (нужен уровень ${need.label}, есть ${have.label}): $cmd"
+            )
+            return fail("ERR требуется уровень доступа ${need.label} (у вас: ${have.label})")
         }
 
         val result = ServerClient.request(ctx, cmd)
@@ -82,3 +82,4 @@ class BridgeProvider : ContentProvider() {
         uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<String>?
     ): Int = 0
 }
+
