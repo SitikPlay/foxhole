@@ -119,6 +119,8 @@ html[lang="en"] [data-t="ru"] { display: none; }
 .guide .steps code { font-family: var(--mono); font-size: 0.9em; color: var(--cream); overflow-wrap: anywhere; }
 .guide .steps pre { margin: 0.9rem 0 0; font-size: 0.82rem; max-width: 100%; }
 .guide .steps a { color: var(--cream); }
+.feats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); gap: 3rem 2.5rem; }
+.feat .checks { margin: 1.25rem 0 0; }
 .ops { margin: 0 0 1.5rem; max-width: 52rem; }
 .ops div { display: grid; grid-template-columns: minmax(0, 20rem) 1fr; gap: 1.5rem; padding: 0.9rem 0; border-bottom: 1px solid var(--ring); }
 .ops dt { font-family: var(--mono); font-size: 0.95rem; color: var(--fox); overflow-wrap: anywhere; }
@@ -181,7 +183,7 @@ pre {
     <div>
       <h1><span data-t="ru" lang="ru">Shell-доступ без root, который ты контролируешь</span><span data-t="en" lang="en">Shell access without root, under your control</span></h1>
       <p class="lead"><span data-t="ru" lang="ru">Foxhole запускает маленький сервер с правами shell и даёт выбранным приложениям выполнять shell-команды. Каждое приложение ты разрешаешь вручную и можешь отозвать в один тап.</span><span data-t="en" lang="en">Foxhole starts a small server with shell privileges and lets selected apps run shell commands. You approve each app by hand and can revoke access with one tap.</span></p>
-      <p class="note"><span data-t="ru" lang="ru">Версия 1.1.0. Работает на Android 8 и выше; спаривание по Wi-Fi — только с Android 11. Проверено не на всех прошивках.</span><span data-t="en" lang="en">Version 1.1.0. Works on Android 8 and up; Wi-Fi pairing only on Android 11+. Not tested on every firmware.</span></p>
+      <p class="note"><span data-t="ru" lang="ru">Версия 1.2.0. Работает на Android 8 и выше; спаривание по Wi-Fi и автозапуск — только с Android 11. Проверено не на всех прошивках.</span><span data-t="en" lang="en">Version 1.2.0. Works on Android 8 and up; Wi-Fi pairing and autostart only on Android 11+. Not tested on every firmware.</span></p>
       <div class="actions">
         <a class="btn btn-main" href="https://github.com/SitikPlay/foxhole/releases/latest"><span data-t="ru" lang="ru">Скачать APK</span><span data-t="en" lang="en">Download APK</span></a>
         <a class="btn btn-ghost" href="https://github.com/SitikPlay/foxhole"><span data-t="ru" lang="ru">Исходный код</span><span data-t="en" lang="en">Source code</span></a>
@@ -234,7 +236,7 @@ pre {
         </li>
         <li>
           <h3><span data-t="ru" lang="ru">Скопируй команду из Foxhole</span><span data-t="en" lang="en">Copy the command from Foxhole</span></h3>
-          <p><span data-t="ru" lang="ru">Команду для запуска можно получить в приложении: выбери запуск через компьютер и скопируй её. Она зависит от телефона, поэтому бери её именно из приложения.</span><span data-t="en" lang="en">You can get the launch command in the app: choose launch through a computer and copy it. It depends on the phone, so take it from the app itself.</span></p>
+          <p><span data-t="ru" lang="ru">В приложении в разделе «Запуск с ПК» нажми «Посмотреть команду»: откроется окно с командой, её можно скопировать или переслать. Команда зависит от телефона, поэтому бери её именно из приложения.</span><span data-t="en" lang="en">In the app, open Launch from a computer and tap View command: a dialog shows the command with Copy and Share buttons. It depends on the phone, so take it from the app itself.</span></p>
         </li>
         <li>
           <h3><span data-t="ru" lang="ru">Выполни её в ADB</span><span data-t="en" lang="en">Run it in ADB</span></h3>
@@ -247,7 +249,7 @@ pre {
           </ol>
         </div>
       </div>
-      <p class="muted"><span data-t="ru" lang="ru">После перезагрузки телефона сервер нужно запустить заново.</span><span data-t="en" lang="en">After the phone restarts, start the server again.</span></p>
+      <p class="muted"><span data-t="ru" lang="ru">После перезагрузки телефона сервер нужно запустить заново. На Android 11 и выше можно включить автозапуск в настройках, он описан ниже.</span><span data-t="en" lang="en">After the phone restarts, start the server again. On Android 11 and up you can turn on autostart in the settings, described below.</span></p>
     </div>
   </section>
 
@@ -264,8 +266,43 @@ pre {
         <div><dt><span data-t="ru" lang="ru">putsetting &lt;область&gt; &lt;ключ&gt; &lt;значение&gt;</span><span data-t="en" lang="en">putsetting &lt;namespace&gt; &lt;key&gt; &lt;value&gt;</span></dt><dd><span data-t="ru" lang="ru">Записать системную настройку.</span><span data-t="en" lang="en">Write a system setting.</span></dd></div>
         <div><dt><span data-t="ru" lang="ru">Уровни доступа</span><span data-t="en" lang="en">Access levels</span></dt><dd><span data-t="ru" lang="ru">READ — только чтение (ping, getsetting). PERMISSIONS — плюс grant, revoke, appop, putsetting. FULL — любые команды. Уровень выбирается при выдаче доступа и меняется позже без отзыва.</span><span data-t="en" lang="en">READ — read-only (ping, getsetting). PERMISSIONS — plus grant, revoke, appop, putsetting. FULL — any commands. You pick a level when granting access and can change it later without revoking.</span></dd></div>
       </dl>
-      <p><span data-t="ru" lang="ru">Алиасы узнаются по первому слову; всё нераспознанное и команды с конвейерами и подстановками считаются FULL — обходы вида <code>getsetting global x; rm -rf /</code> на уровне READ не проходят. Также внутри менеджера есть удаление приложений: пользовательские приложения перед удалением копируются в корзину «Удалённые» на 25 дней, откуда их можно восстановить (данные приложения не восстанавливаются); системные не удаляются физически — только скрываются для тебя и возвращаются в любой момент. Это возможно только из самого менеджера: через провайдер такие команды доступны лишь на уровне FULL.</span><span data-t="en" lang="en">Aliases are matched by the first word; anything unrecognized, plus pipelines and substitutions, counts as FULL — bypasses like <code>getsetting global x; rm -rf /</code> do not pass at READ level. Housekeeping: the manager can also uninstall apps. User apps are backed up to a 25-day "Deleted" trash before removal and can be restored from it (app data is not restored); system apps aren't physically removed — they're only hidden for you and can be brought back any time. This works only from the manager itself: through the provider such commands require the FULL level.</span></p>
+      <p><span data-t="ru" lang="ru">Алиасы узнаются по первому слову; всё нераспознанное и команды с конвейерами и подстановками считаются FULL — обходы вида <code>getsetting global x; rm -rf /</code> на уровне READ не проходят. Проверка выполняется до того, как команда попадёт на сервер, а отказ по уровню приходит приложению понятным ответом и пишется в журнал.</span><span data-t="en" lang="en">Aliases are matched by the first word; anything unrecognized, plus pipelines and substitutions, counts as FULL — bypasses like <code>getsetting global x; rm -rf /</code> do not pass at the READ level. The check runs before the command reaches the server, and a refusal by level comes back to the app as a clear answer and is written to the log.</span></p>
       <p class="muted"><span data-t="ru" lang="ru">Вывод ограничен 128 КиБ, таймаут команды — 20 секунд. Останавливать сервер может только сам менеджер.</span><span data-t="en" lang="en">Output is capped at 128 KiB and commands time out after 20 seconds. Only the manager itself can stop the server.</span></p>
+    </div>
+  </section>
+
+  <section class="section" id="new">
+    <div class="wrap">
+      <h2><span data-t="ru" lang="ru">Что нового в 1.2.0</span><span data-t="en" lang="en">What is new in 1.2.0</span></h2>
+      <div class="feats">
+      <div class="feat guide">
+        <h3 class="guide-title"><span data-t="ru" lang="ru">Запросы доступа</span><span data-t="en" lang="en">Access requests</span></h3>
+        <ul class="checks">
+          <li><span data-t="ru" lang="ru">Три уровня доступа: READ, PERMISSIONS и FULL. По умолчанию выдаётся READ, уровень можно сменить без отзыва доступа.</span><span data-t="en" lang="en">Three access levels: READ, PERMISSIONS and FULL. READ is the default, and you can change a level without revoking access.</span></li>
+          <li><span data-t="ru" lang="ru">Уведомление о новом запросе с кнопками «Разрешить (READ)» и «Отклонить». На одно приложение одно уведомление.</span><span data-t="en" lang="en">A notification for each new request with Allow (READ) and Deny buttons. One notification per app.</span></li>
+          <li><span data-t="ru" lang="ru">Кнопка «Остановить» на главной карточке. Она видна, только когда сервер работает.</span><span data-t="en" lang="en">A Stop button on the main card, visible only while the server is running.</span></li>
+        </ul>
+      </div>
+      <div class="feat guide">
+        <h3 class="guide-title"><span data-t="ru" lang="ru">Удаление приложений</span><span data-t="en" lang="en">Removing apps</span></h3>
+        <ul class="checks">
+          <li><span data-t="ru" lang="ru">Можно убрать любое установленное приложение, в том числе системное: есть поиск, фильтр и выбор галочками.</span><span data-t="en" lang="en">You can remove any installed app, system ones included, with search, a filter and checkboxes.</span></li>
+          <li><span data-t="ru" lang="ru">Предупреждение о рисках показывается только для системных приложений.</span><span data-t="en" lang="en">The risk warning appears only for system apps.</span></li>
+          <li><span data-t="ru" lang="ru">Корзина «Удалённые» на 25 дней: приложение можно восстановить. Данные приложения не возвращаются, только сам APK.</span><span data-t="en" lang="en">A 25-day Deleted trash: you can restore an app. App data is not restored, only the APK.</span></li>
+          <li><span data-t="ru" lang="ru">Системные приложения только скрываются, а не стираются. Галочка «Удалить безвозвратно» отключает корзину.</span><span data-t="en" lang="en">System apps are only hidden, not erased. The Delete permanently checkbox skips the trash.</span></li>
+          <li><span data-t="ru" lang="ru">Это работает только из самого менеджера: через провайдер такие команды доступны лишь на уровне FULL.</span><span data-t="en" lang="en">This works only from the manager itself: through the provider such commands require the FULL level.</span></li>
+        </ul>
+      </div>
+      <div class="feat guide">
+        <h3 class="guide-title"><span data-t="ru" lang="ru">Автозапуск после перезагрузки</span><span data-t="en" lang="en">Autostart after reboot</span></h3>
+        <ul class="checks">
+          <li><span data-t="ru" lang="ru">Для Android 11 и выше. По умолчанию выключен, включается в настройках.</span><span data-t="en" lang="en">For Android 11 and up. Off by default, turned on in the settings.</span></li>
+          <li><span data-t="ru" lang="ru">После загрузки Foxhole сам включает беспроводную отладку, подключается спаренным ключом и запускает сервер. По желанию отладка потом выключается обратно.</span><span data-t="en" lang="en">After boot Foxhole turns on wireless debugging, connects with the paired key and starts the server. If you want, debugging is switched off again afterwards.</span></li>
+          <li><span data-t="ru" lang="ru">Нужен Wi-Fi и разрешение WRITE_SECURE_SETTINGS: Foxhole выдаёт его себе через собственный сервер после твоего подтверждения. Спаривание с компьютера не подходит, ключ должен быть создан самим Foxhole.</span><span data-t="en" lang="en">You need Wi-Fi and the WRITE_SECURE_SETTINGS permission: Foxhole grants it to itself through its own server after you confirm. Pairing from a computer does not work, the key has to be created by Foxhole itself.</span></li>
+          <li><span data-t="ru" lang="ru">Проверено на реальном устройстве (PixelOS, Android 17). На других прошивках может вести себя иначе.</span><span data-t="en" lang="en">Tested on a real device (PixelOS, Android 17). Other firmware may behave differently.</span></li>
+        </ul>
+      </div>
+      </div>
     </div>
   </section>
 
@@ -277,6 +314,7 @@ pre {
         <li><span data-t="ru" lang="ru">Доступ привязан к uid приложения, а не к его названию, поэтому подделать его нельзя.</span><span data-t="en" lang="en">Access is tied to the app’s uid, not its name, so it cannot be spoofed.</span></li>
         <li><span data-t="ru" lang="ru">Каждый запрос попадает в журнал, который можно открыть в приложении.</span><span data-t="en" lang="en">Every request is written to a log you can open in the app.</span></li>
         <li><span data-t="ru" lang="ru">Без рекламы и сбора данных. Исходный код открыт под GPL-3.0.</span><span data-t="en" lang="en">No ads and no data collection. The source code is open under GPL-3.0.</span></li>
+        <li><span data-t="ru" lang="ru">Чтобы показать полный список установленных приложений, Foxhole запрашивает разрешение QUERY_ALL_PACKAGES. В Google Play приложение не публикуется.</span><span data-t="en" lang="en">To show the full list of installed apps, Foxhole requests the QUERY_ALL_PACKAGES permission. The app is not published on Google Play.</span></li>
       </ul>
       <p class="muted"><span data-t="ru" lang="ru">Права shell широкие, поэтому разрешай только те приложения, которым доверяешь.</span><span data-t="en" lang="en">Shell privileges are broad, so only allow apps you trust.</span></p>
     </div>
@@ -285,7 +323,7 @@ pre {
   <section class="section">
     <div class="wrap">
       <h2><span data-t="ru" lang="ru">Для разработчиков</span><span data-t="en" lang="en">For developers</span></h2>
-      <p><span data-t="ru" lang="ru">Твоё приложение вызывает провайдер Foxhole. При первом вызове оно получит отказ и появится в списке ожидающих, а после разрешения вызовы заработают. Вызывать нужно не из главного потока.</span><span data-t="en" lang="en">Your app calls the Foxhole provider. The first call is rejected and the app appears in the pending list; after you allow it, calls go through. Do not call it from the main thread.</span></p>
+      <p><span data-t="ru" lang="ru">Твоё приложение вызывает провайдер Foxhole. При первом вызове оно получит отказ и появится в списке ожидающих, а после разрешения вызовы заработают. Если команда выше выданного уровня доступа, придёт понятный отказ. Вызывать нужно не из главного потока.</span><span data-t="en" lang="en">Your app calls the Foxhole provider. The first call is rejected and the app appears in the pending list; after you allow it, calls go through. If a command is above the granted access level, you get a clear refusal. Do not call it from the main thread.</span></p>
 <pre><code>val uri = Uri.parse("content://com.sitikplay.foxhole.bridge")
 val r = contentResolver.call(uri, "exec", "ping", null)
 val ok = r?.getBoolean("ok") == true
