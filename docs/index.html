@@ -183,7 +183,7 @@ pre {
     <div>
       <h1><span data-t="ru" lang="ru">Shell-доступ без root, который ты контролируешь</span><span data-t="en" lang="en">Shell access without root, under your control</span></h1>
       <p class="lead"><span data-t="ru" lang="ru">Foxhole запускает маленький сервер с правами shell и даёт выбранным приложениям выполнять shell-команды. Каждое приложение ты разрешаешь вручную и можешь отозвать в один тап.</span><span data-t="en" lang="en">Foxhole starts a small server with shell privileges and lets selected apps run shell commands. You approve each app by hand and can revoke access with one tap.</span></p>
-      <p class="note"><span data-t="ru" lang="ru">Версия 1.2.0. Работает на Android 8 и выше; спаривание по Wi-Fi и автозапуск — только с Android 11. Проверено не на всех прошивках.</span><span data-t="en" lang="en">Version 1.2.0. Works on Android 8 and up; Wi-Fi pairing and autostart only on Android 11+. Not tested on every firmware.</span></p>
+      <p class="note"><span data-t="ru" lang="ru">Версия 1.3.0. Работает на Android 8 и выше; спаривание по Wi-Fi и автозапуск — только с Android 11. Проверено не на всех прошивках.</span><span data-t="en" lang="en">Version 1.3.0. Works on Android 8 and up; Wi-Fi pairing and autostart only on Android 11+. Not tested on every firmware.</span></p>
       <div class="actions">
         <a class="btn btn-main" href="https://github.com/SitikPlay/foxhole/releases/latest"><span data-t="ru" lang="ru">Скачать APK</span><span data-t="en" lang="en">Download APK</span></a>
         <a class="btn btn-ghost" href="https://github.com/SitikPlay/foxhole"><span data-t="ru" lang="ru">Исходный код</span><span data-t="en" lang="en">Source code</span></a>
@@ -273,33 +273,31 @@ pre {
 
   <section class="section" id="new">
     <div class="wrap">
-      <h2><span data-t="ru" lang="ru">Что нового в 1.2.0</span><span data-t="en" lang="en">What is new in 1.2.0</span></h2>
+      <h2><span data-t="ru" lang="ru">Что нового в 1.3.0</span><span data-t="en" lang="en">What is new in 1.3.0</span></h2>
       <div class="feats">
       <div class="feat guide">
-        <h3 class="guide-title"><span data-t="ru" lang="ru">Запросы доступа</span><span data-t="en" lang="en">Access requests</span></h3>
+        <h3 class="guide-title"><span data-t="ru" lang="ru">Запуск без открытия приложения</span><span data-t="en" lang="en">Start without opening the app</span></h3>
         <ul class="checks">
-          <li><span data-t="ru" lang="ru">Три уровня доступа: READ, PERMISSIONS и FULL. По умолчанию выдаётся READ, уровень можно сменить без отзыва доступа.</span><span data-t="en" lang="en">Three access levels: READ, PERMISSIONS and FULL. READ is the default, and you can change a level without revoking access.</span></li>
-          <li><span data-t="ru" lang="ru">Уведомление о новом запросе с кнопками «Разрешить (READ)» и «Отклонить». На одно приложение одно уведомление.</span><span data-t="en" lang="en">A notification for each new request with Allow (READ) and Deny buttons. One notification per app.</span></li>
-          <li><span data-t="ru" lang="ru">Кнопка «Остановить» на главной карточке. Она видна, только когда сервер работает.</span><span data-t="en" lang="en">A Stop button on the main card, visible only while the server is running.</span></li>
+          <li><span data-t="ru" lang="ru">Плитка в быстрых настройках: запуск и остановка сервера тапом.</span><span data-t="en" lang="en">A quick settings tile: start and stop the server with one tap.</span></li>
+          <li><span data-t="ru" lang="ru">Виджет на рабочем столе: статус и запуск.</span><span data-t="en" lang="en">A home-screen widget: status and start.</span></li>
+          <li><span data-t="ru" lang="ru">Если автопоиск телефона не работает (бывает на части прошивок), в настройках автозапуска можно вписать резервный адрес «хост:порт» — плитка, виджет и автозапуск подключатся напрямую.</span><span data-t="en" lang="en">If automatic discovery does not find the phone (it happens on some firmware), you can enter a fallback "host:port" in the autostart settings — the tile, widget and autostart will connect directly.</span></li>
         </ul>
       </div>
       <div class="feat guide">
-        <h3 class="guide-title"><span data-t="ru" lang="ru">Удаление приложений</span><span data-t="en" lang="en">Removing apps</span></h3>
+        <h3 class="guide-title"><span data-t="ru" lang="ru">Безопасность</span><span data-t="en" lang="en">Security</span></h3>
         <ul class="checks">
-          <li><span data-t="ru" lang="ru">Можно убрать любое установленное приложение, в том числе системное: есть поиск, фильтр и выбор галочками.</span><span data-t="en" lang="en">You can remove any installed app, system ones included, with search, a filter and checkboxes.</span></li>
-          <li><span data-t="ru" lang="ru">Предупреждение о рисках показывается только для системных приложений.</span><span data-t="en" lang="en">The risk warning appears only for system apps.</span></li>
-          <li><span data-t="ru" lang="ru">Корзина «Удалённые» на 25 дней: приложение можно восстановить. Данные приложения не возвращаются, только сам APK.</span><span data-t="en" lang="en">A 25-day Deleted trash: you can restore an app. App data is not restored, only the APK.</span></li>
-          <li><span data-t="ru" lang="ru">Системные приложения только скрываются, а не стираются. Галочка «Удалить безвозвратно» отключает корзину.</span><span data-t="en" lang="en">System apps are only hidden, not erased. The Delete permanently checkbox skips the trash.</span></li>
-          <li><span data-t="ru" lang="ru">Это работает только из самого менеджера: через провайдер такие команды доступны лишь на уровне FULL.</span><span data-t="en" lang="en">This works only from the manager itself: through the provider such commands require the FULL level.</span></li>
+          <li><span data-t="ru" lang="ru">Подтверждение устройством: биометрия или PIN перед выдачей доступа и опасными действиями (окно 15–600 с).</span><span data-t="en" lang="en">Device confirmation: biometrics or a PIN before granting access and dangerous actions (a 15–600 s window).</span></li>
+          <li><span data-t="ru" lang="ru">Токен и секреты шифруются ключом Android Keystore.</span><span data-t="en" lang="en">The token and secrets are encrypted with an Android Keystore key.</span></li>
+          <li><span data-t="ru" lang="ru">Опасные команды требуют отдельного подтверждения, а частоту запросов клиентов ограничивает лимит.</span><span data-t="en" lang="en">Dangerous commands need a separate approval, and client request frequency is rate-limited.</span></li>
         </ul>
       </div>
       <div class="feat guide">
-        <h3 class="guide-title"><span data-t="ru" lang="ru">Автозапуск после перезагрузки</span><span data-t="en" lang="en">Autostart after reboot</span></h3>
+        <h3 class="guide-title"><span data-t="ru" lang="ru">Терминал, профили и сведения</span><span data-t="en" lang="en">Terminal, profiles and info</span></h3>
         <ul class="checks">
-          <li><span data-t="ru" lang="ru">Для Android 11 и выше. По умолчанию выключен, включается в настройках.</span><span data-t="en" lang="en">For Android 11 and up. Off by default, turned on in the settings.</span></li>
-          <li><span data-t="ru" lang="ru">После загрузки Foxhole сам включает беспроводную отладку, подключается спаренным ключом и запускает сервер. По желанию отладка потом выключается обратно.</span><span data-t="en" lang="en">After boot Foxhole turns on wireless debugging, connects with the paired key and starts the server. If you want, debugging is switched off again afterwards.</span></li>
-          <li><span data-t="ru" lang="ru">Нужен Wi-Fi и разрешение WRITE_SECURE_SETTINGS: Foxhole выдаёт его себе через собственный сервер после твоего подтверждения. Спаривание с компьютера не подходит, ключ должен быть создан самим Foxhole.</span><span data-t="en" lang="en">You need Wi-Fi and the WRITE_SECURE_SETTINGS permission: Foxhole grants it to itself through its own server after you confirm. Pairing from a computer does not work, the key has to be created by Foxhole itself.</span></li>
-          <li><span data-t="ru" lang="ru">Проверено на реальном устройстве (PixelOS, Android 17). На других прошивках может вести себя иначе.</span><span data-t="en" lang="en">Tested on a real device (PixelOS, Android 17). Other firmware may behave differently.</span></li>
+          <li><span data-t="ru" lang="ru">Терминал с живым выводом и историей; секреты в истории маскируются.</span><span data-t="en" lang="en">A terminal with live output and history; secrets are masked in the history.</span></li>
+          <li><span data-t="ru" lang="ru">Профили команд: готовые шаблоны со слотами и свои профили; опасные значения отбрасываются с предупреждением.</span><span data-t="en" lang="en">Command profiles: ready templates with slots and your own ones; dangerous values are rejected with a warning.</span></li>
+          <li><span data-t="ru" lang="ru">Отчёт по устройству и статистика активности приложений.</span><span data-t="en" lang="en">A device report and app activity statistics.</span></li>
+          <li><span data-t="ru" lang="ru">Foxhole-adb — консольный помощник для ПК: обёртка над официальным adb с русским интерфейсом и встроенным platform-tools.</span><span data-t="en" lang="en">foxhole-adb — a PC console helper: a wrapper around the official adb with a Russian interface and bundled platform-tools.</span></li>
         </ul>
       </div>
       </div>

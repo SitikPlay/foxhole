@@ -16,6 +16,18 @@ object Server {
     private const val CMD_TIMEOUT_MS = 20_000L
     private const val MAX_OUTPUT = 128 * 1024
 
+    private const val MAX_TOKEN_LINE = 256
+    private const val MAX_CMD_LINE = 16_384
+
+    private val FAIL_LOCK = Any()
+    private var consecutiveFails = 0
+    private var windowStartMs = 0L
+    private var windowFails = 0
+    private val FAIL_WINDOW_MS = 60_000L
+    private val CONSEC_FAIL_DELAY_MS = 2_000L
+    private val BURST_FAIL_DELAY_MS = 5_000L
+    private val BURST_THRESHOLD = 20
+
     private val PKG = Regex("^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z0-9_]+)*$")
     private val PERM = Regex("^[a-zA-Z0-9_.]+$")
     private val OP = Regex("^[A-Za-z0-9_.:-]+$")
@@ -38,18 +50,57 @@ object Server {
         }
     }
 
+    private fun noteTokenFailure(): Long = synchronized(FAIL_LOCK) {
+        val now = System.currentTimeMillis()
+        if (now - windowStartMs > FAIL_WINDOW_MS) {
+            windowStartMs = now
+            windowFails = 0
+        }
+        windowFails++
+        consecutiveFails++
+        return when {
+            windowFails >= BURST_THRESHOLD -> BURST_FAIL_DELAY_MS
+            consecutiveFails >= 2 -> CONSEC_FAIL_DELAY_MS
+            else -> 0L
+        }
+    }
+
+    private fun noteTokenSuccess() = synchronized(FAIL_LOCK) {
+        consecutiveFails = 0
+    }
+
+    private fun readLimited(reader: java.io.Reader, max: Int): String? {
+        val sb = StringBuilder(minOf(max, 256))
+        while (true) {
+            val c = reader.read()
+            when {
+                c == -1 -> return sb.toString()
+                c == '\n'.code -> return sb.toString().removeSuffix("\r")
+                else -> {
+                    sb.append(c.toChar())
+                    if (sb.length > max) return null
+                }
+            }
+        }
+    }
+
     private fun handle(socket: Socket, token: String) {
         socket.use { s ->
             s.soTimeout = 5000
             val reader = s.getInputStream().bufferedReader()
             val writer = s.getOutputStream().bufferedWriter()
             val reply = try {
-                val got = reader.readLine() ?: ""
-                val expected = token.toByteArray(Charsets.UTF_8)
-                if (!MessageDigest.isEqual(got.toByteArray(Charsets.UTF_8), expected)) {
+
+                val got = readLimited(reader, MAX_TOKEN_LINE)
+                if (got == null || !MessageDigest.isEqual(got.toByteArray(Charsets.UTF_8), token.toByteArray(Charsets.UTF_8))) {
+                    val delay = noteTokenFailure()
+                    println("auth: token rejected, delay ${delay}ms")
+                    if (delay > 0) Thread.sleep(delay)
                     "ERR bad token"
                 } else {
-                    execute(reader.readLine() ?: "")
+                    noteTokenSuccess()
+                    val cmd = readLimited(reader, MAX_CMD_LINE)
+                    if (cmd == null) "ERR команда слишком длинная" else execute(cmd)
                 }
             } catch (e: Exception) {
                 System.err.println("handle failed: $e")
@@ -151,4 +202,3 @@ object Server {
         return sb.toString().trim() to truncated
     }
 }
-

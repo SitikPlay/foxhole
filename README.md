@@ -3,6 +3,7 @@
 # Foxhole
 
 [![Build](https://github.com/SitikPlay/foxhole/actions/workflows/build.yml/badge.svg)](https://github.com/SitikPlay/foxhole/actions/workflows/build.yml)
+[![Test](https://github.com/SitikPlay/foxhole/actions/workflows/test.yml/badge.svg)](https://github.com/SitikPlay/foxhole/actions/workflows/test.yml)
 [![Latest release](https://img.shields.io/github/v/release/SitikPlay/foxhole?include_prereleases)](https://github.com/SitikPlay/foxhole/releases)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
 [![minSdk](https://img.shields.io/badge/Android-8%2B%20(API%2026)-green)](https://developer.android.com/about/versions/oreo)
@@ -64,6 +65,18 @@
 | `putsetting <global\|secure\|system> <ключ> <значение>` | записать системную настройку |
 
 Всё остальное исполняется как есть через `sh -c`. Останавливать сервер может только сам менеджер — сторонним приложениям команда `stop` запрещена. Кнопка «Остановить» в главной карточке завершает сервер и сразу обновляет статус; вручную остановленный сервер автозапуск не поднимет до следующей перезагрузки.
+
+## Новое в 1.3.0
+
+- **Плитка в быстрых настройках и виджет**: запуск/остановка сервера без открытия приложения.
+- **Подтверждение устройством** (биометрия/PIN) перед выдачей доступа и опасными действиями, окно 15–600 с.
+- **Профили команд**: готовые шаблоны со слотами и свои профили; опасные значения слотов отбрасываются с предупреждением.
+- **Терминал** с живым выводом и историей (секреты в истории маскируются).
+- **Отчёт по устройству** и статистика активности приложений (`Activity Manager`).
+- **Токен и секреты шифруются через Android Keystore** (раньше — план).
+- **Ограничение частоты запросов** от клиентов и **подтверждение опасных команд** до их выполнения.
+- **Резервный адрес «хост:порт»** для запуска без ПК: если mDNS-обнаружение не работает на прошивке, автозапуск, плитка и виджет подключаются напрямую по адресу из настроек.
+- **[foxhole-adb](tools/foxhole-adb/README.md)** — консольный ПК-компонент: обёртка над официальным adb с русским интерфейсом, встроенным platform-tools и замком на всех командах, меняющих телефон.
 
 ## Установка и запуск
 
@@ -235,6 +248,7 @@ cd Foxhole
 - [CHANGELOG.md](CHANGELOG.md) — история изменений.
 - [SECURITY.md](SECURITY.md) — как сообщить об уязвимости.
 - [store-assets/store-listing.md](store-assets/store-listing.md) — название, краткое и полное описание для магазина.
+- [tools/foxhole-adb/README.md](tools/foxhole-adb/README.md) — ПК-компонент: установка, команды, безопасность.
 - `docs/` — сайт проекта для GitHub Pages.
 
 ## Публикация и лицензия

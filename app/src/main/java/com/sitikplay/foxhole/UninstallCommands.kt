@@ -38,7 +38,7 @@ object UninstallCommands {
         return "pm install -r --user 0 $quoted"
     }
 
-    private fun quote(s: String): String = "\"${s.replace("\"", "")}\""
+    private fun quote(s: String): String = "'" + s.replace("'", "'\\''") + "'"
 
     fun quoteShellArg(s: String): String = quote(s)
 

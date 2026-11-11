@@ -45,4 +45,3 @@ class AclTest {
         assertEquals(AclLevel.READ, Acl.classify("   ping   "))
     }
 }
-

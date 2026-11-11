@@ -292,7 +292,6 @@ function Test-Server {
     }
 }
 
-# Запуск сервера командой с ПК: приложение создаёт start.sh, компьютер запускает его по ADB.
 function Test-PcScript {
     $path = "/storage/emulated/0/Android/data/$pkg/files/start.sh"
 

@@ -37,9 +37,10 @@ class FoxholeAdb private constructor(ctx: Context) : AbsAdbConnectionManager() {
     init {
         setApi(Build.VERSION.SDK_INT)
 
-        val prefs = ctx.getSharedPreferences("rb_adb", Context.MODE_PRIVATE)
-        val storedKey = prefs.getString("key", null)
-        val storedCert = prefs.getString("cert", null)
+        val storedKey = SecretVault.getSecureString(ctx, "adb_key")
+            ?.let { SecretVault.decryptString(it) }
+        val storedCert = SecretVault.getSecureString(ctx, "adb_cert")
+            ?.let { SecretVault.decryptString(it) }
 
         val loaded = if (storedKey != null && storedCert != null) {
             try {
@@ -49,16 +50,15 @@ class FoxholeAdb private constructor(ctx: Context) : AbsAdbConnectionManager() {
                     ByteArrayInputStream(Base64.decode(storedCert, Base64.NO_WRAP))
                 )
             } catch (e: Exception) {
-                prefs.edit().remove("key").remove("cert").apply()
+
+                SecretVault.removeSecure(ctx, "adb_key", "adb_cert")
                 null
             }
         } else null
 
         val (key, cert) = loaded ?: generate().also { (k, c) ->
-            prefs.edit()
-                .putString("key", Base64.encodeToString(k.encoded, Base64.NO_WRAP))
-                .putString("cert", Base64.encodeToString(c.encoded, Base64.NO_WRAP))
-                .apply()
+            SecretVault.putSecureString(ctx, "adb_key", SecretVault.encrypt(k.encoded))
+            SecretVault.putSecureString(ctx, "adb_cert", SecretVault.encrypt(c.encoded))
         }
         privateKey = key
         certificate = cert
@@ -82,20 +82,18 @@ class FoxholeAdb private constructor(ctx: Context) : AbsAdbConnectionManager() {
         fun forget(ctx: Context) {
             synchronized(this) {
                 instance = null
-                ctx.getSharedPreferences("rb_adb", Context.MODE_PRIVATE).edit().clear().apply()
+
+                SecretVault.removeSecure(ctx, "adb_key", "adb_cert", "adb_paired")
             }
         }
 
-        fun hasKey(ctx: Context): Boolean {
-            val prefs = ctx.getSharedPreferences("rb_adb", Context.MODE_PRIVATE)
-            return prefs.getString("key", null) != null &&
-                prefs.getString("cert", null) != null &&
-                prefs.getBoolean("paired", false)
-        }
+        fun hasKey(ctx: Context): Boolean =
+            SecretVault.getSecureString(ctx, "adb_key") != null &&
+                SecretVault.getSecureString(ctx, "adb_cert") != null &&
+                SecretVault.getSecureBoolean(ctx, "adb_paired", false)
 
         fun markPaired(ctx: Context) {
-            ctx.getSharedPreferences("rb_adb", Context.MODE_PRIVATE)
-                .edit().putBoolean("paired", true).apply()
+            SecretVault.putSecureBoolean(ctx, "adb_paired", true)
         }
 
         private fun generate(): Pair<PrivateKey, Certificate> {
@@ -133,4 +131,3 @@ class FoxholeAdb private constructor(ctx: Context) : AbsAdbConnectionManager() {
         }
     }
 }
-

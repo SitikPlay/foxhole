@@ -55,7 +55,7 @@ class PairService : Service() {
     }
 
     private fun pairFromInput(input: String) {
-        val parsed = parsePairInput(input, Settings.port(this))
+        val parsed = parsePairInput(this, input, Settings.port(this))
         if (parsed is PairParse.Error) {
             fail(parsed.message)
             return
@@ -69,7 +69,7 @@ class PairService : Service() {
             false
         }
         if (!wifiEnabled) {
-            fail("Беспроводная отладка выключена")
+            fail(getString(R.string.t345))
             return
         }
 
@@ -83,11 +83,11 @@ class PairService : Service() {
             future.get(75, TimeUnit.SECONDS)
         } catch (e: Exception) {
             future.cancel(true)
-            fail("Спаривание не удалось: ${friendlyAdbError(e)}")
+            fail(getString(R.string.t346, friendlyAdbError(this, e)))
             return
         }
         if (!paired) {
-            fail("Устройство отклонило спаривание")
+            fail(getString(R.string.t347))
             return
         }
         succeed()
@@ -96,8 +96,8 @@ class PairService : Service() {
     private fun succeed() {
         FoxholeAdb.markPaired(this)
         val notification = baseNotification()
-            .setContentTitle("Спарено")
-            .setContentText("Нажми, чтобы открыть Foxhole и запустить сервер")
+            .setContentTitle(getString(R.string.t348))
+            .setContentText(getString(R.string.t349))
             .setOngoing(false)
             .setAutoCancel(true)
             .setContentIntent(openAppPendingIntent(autoStart = true))
@@ -109,7 +109,7 @@ class PairService : Service() {
 
     private fun fail(message: String) {
         val notification = baseNotification()
-            .setContentTitle("Спаривание не удалось")
+            .setContentTitle(getString(R.string.t350))
             .setContentText(message)
             .addAction(inputAction())
             .addAction(cancelAction())
@@ -135,17 +135,17 @@ class PairService : Service() {
     }
 
     private fun readyNotification(): Notification = baseNotification()
-        .setContentTitle("Спаривание Foxhole")
-        .setContentText("Открой «Подключение по коду», затем введи порт и код здесь")
-        .setSubText("Настройки не закрывай")
+        .setContentTitle(getString(R.string.t351))
+        .setContentText(getString(R.string.t352))
+        .setSubText(getString(R.string.t353))
         .setContentIntent(openAppPendingIntent(autoStart = false))
         .addAction(inputAction())
         .addAction(cancelAction())
         .build()
 
     private fun progressNotification(): Notification = baseNotification()
-        .setContentTitle("Спариваю…")
-        .setContentText("Не закрывай настройки до конца спаривания")
+        .setContentTitle(getString(R.string.t354))
+        .setContentText(getString(R.string.t355))
         .build()
 
     private fun baseNotification(): NotificationCompat.Builder =
@@ -158,7 +158,7 @@ class PairService : Service() {
 
     private fun inputAction(): NotificationCompat.Action {
         val remoteInput = RemoteInput.Builder(EXTRA_INPUT)
-            .setLabel("Порт и код: 41221 483661")
+            .setLabel(getString(R.string.t356))
             .build()
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0
@@ -168,7 +168,7 @@ class PairService : Service() {
             Intent(this, PairActionReceiver::class.java),
             flags
         )
-        return NotificationCompat.Action.Builder(R.drawable.ic_settings, "Ввести порт и код", intent)
+        return NotificationCompat.Action.Builder(R.drawable.ic_settings, getString(R.string.t357), intent)
             .addRemoteInput(remoteInput)
             .setAllowGeneratedReplies(true)
             .build()
@@ -181,7 +181,7 @@ class PairService : Service() {
             Intent(this, PairService::class.java).setAction(ACTION_CANCEL),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        return NotificationCompat.Action.Builder(R.drawable.ic_settings, "Отмена", intent).build()
+        return NotificationCompat.Action.Builder(R.drawable.ic_settings, getString(R.string.t358), intent).build()
     }
 
     private fun openAppPendingIntent(autoStart: Boolean): PendingIntent {
@@ -202,10 +202,10 @@ class PairService : Service() {
         val manager = getSystemService(NotificationManager::class.java)
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Спаривание",
+            getString(R.string.t359),
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
-            description = "Ввод порта и кода беспроводной отладки"
+            description = getString(R.string.t360)
             setShowBadge(false)
         }
         manager.createNotificationChannel(channel)
@@ -238,4 +238,3 @@ class PairActionReceiver : BroadcastReceiver() {
         ContextCompat.startForegroundService(context, service)
     }
 }
-

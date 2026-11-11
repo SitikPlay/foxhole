@@ -1,0 +1,5 @@
+Foxhole runs a small server process as the shell user (uid 2000) and lets apps you approve run shell commands on Android, without root.
+
+Access is granted per app by uid, with three levels: READ, PERMISSIONS and FULL. Every request is logged; the server listens on localhost only and accepts requests with a secret token encrypted with Android Keystore. A quick settings tile, a home-screen widget, device confirmation (biometrics or PIN), command profiles, a terminal with masked history, a device report and app activity stats are included.
+
+Requires Android 8 (API 26); Wi-Fi pairing and autostart after reboot need Android 11+. No root, no telemetry, open source under GPL-3.0-or-later.

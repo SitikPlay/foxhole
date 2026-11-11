@@ -7,7 +7,21 @@ import java.util.Locale
 
 object AccessStore {
 
-    data class App(val uid: Int, val pkg: String, val level: AclLevel = AclLevel.FULL)
+    data class App(
+        val uid: Int,
+        val pkg: String,
+        val level: AclLevel = AclLevel.FULL,
+        val sigHash: String? = null,
+        val expiry: Long = PERMANENT
+    ) {
+        val pkgList: List<String> get() = pkg.split(',').filter { it.isNotBlank() }
+        val expired: Boolean get() = expiry in 1..System.currentTimeMillis()
+
+        companion object {
+            const val PERMANENT = 0L
+            const val ONE_HOUR_MS = 60L * 60L * 1000L
+        }
+    }
 
     private const val ALLOWED = "allowed"
     private const val PENDING = "pending"
@@ -18,12 +32,13 @@ object AccessStore {
     private fun prefs(ctx: Context) =
         ctx.getSharedPreferences("foxhole_access", Context.MODE_PRIVATE)
 
-    private fun encode(a: App) = "${a.uid}|${a.pkg}|${a.level.name}"
+    private fun encode(a: App) = "${a.uid}|${a.pkg}|${a.level.name}|${a.sigHash ?: ""}|${a.expiry}"
 
     private fun decode(s: String): App? {
         val parts = s.split('|')
         if (parts.size < 2) return null
         val uid = parts[0].toIntOrNull() ?: return null
+        val pkg = parts[1]
         val level = if (parts.size >= 3) {
             try {
                 AclLevel.valueOf(parts[2])
@@ -33,7 +48,9 @@ object AccessStore {
         } else {
             AclLevel.FULL
         }
-        return App(uid, parts[1], level)
+        val sig = if (parts.size >= 4) parts[3].takeIf { it.isNotBlank() } else null
+        val expiry = if (parts.size >= 5) parts[4].toLongOrNull() ?: 0L else 0L
+        return App(uid, pkg, level, sig, expiry)
     }
 
     private fun read(ctx: Context, key: String): MutableSet<String> =
@@ -52,12 +69,20 @@ object AccessStore {
         read(ctx, PENDING).mapNotNull { decode(it) }.sortedBy { it.pkg }
 
     @Synchronized
+    fun findByUid(ctx: Context, uid: Int): App? =
+        allowed(ctx).firstOrNull { it.uid == uid }
+
+    @Synchronized
     fun isAllowed(ctx: Context, uid: Int): Boolean =
         allowed(ctx).any { it.uid == uid }
 
     @Synchronized
     fun level(ctx: Context, uid: Int): AclLevel =
         allowed(ctx).firstOrNull { it.uid == uid }?.level ?: AclLevel.FULL
+
+    @Synchronized
+    fun isExpired(ctx: Context, uid: Int): Boolean =
+        findByUid(ctx, uid)?.expired == true
 
     @Synchronized
     fun isPending(ctx: Context, uid: Int): Boolean =
@@ -75,18 +100,19 @@ object AccessStore {
     }
 
     @Synchronized
-    fun allow(ctx: Context, app: App, level: AclLevel = AclLevel.FULL) {
+    fun allow(ctx: Context, app: App, level: AclLevel = AclLevel.FULL, durationMs: Long = 0L) {
+        val expiry = if (durationMs > 0) System.currentTimeMillis() + durationMs else App.PERMANENT
         val pending = read(ctx, PENDING)
         pending.removeAll { decode(it)?.uid == app.uid }
         write(ctx, PENDING, pending)
         val allowed = read(ctx, ALLOWED)
         allowed.removeAll { decode(it)?.uid == app.uid }
-        allowed.add(encode(App(app.uid, app.pkg, level)))
+        allowed.add(encode(App(app.uid, app.pkg, level, app.sigHash, expiry)))
         write(ctx, ALLOWED, allowed)
         if (level == AclLevel.FULL) {
-            log(ctx, "${app.pkg} РАЗРЕШЕНО пользователем")
+            log(ctx, ctx.getString(R.string.t316, app.pkg))
         } else {
-            log(ctx, "${app.pkg} РАЗРЕШЕНО пользователем (уровень ${level.label})")
+            log(ctx, ctx.getString(R.string.t317, app.pkg, level.label))
         }
     }
 
@@ -94,9 +120,41 @@ object AccessStore {
     fun setLevel(ctx: Context, app: App, level: AclLevel) {
         val allowed = read(ctx, ALLOWED)
         allowed.removeAll { decode(it)?.uid == app.uid }
-        allowed.add(encode(App(app.uid, app.pkg, level)))
+        allowed.add(encode(App(app.uid, app.pkg, level, app.sigHash, app.expiry)))
         write(ctx, ALLOWED, allowed)
-        log(ctx, "${app.pkg} уровень доступа: ${level.label}")
+        log(ctx, ctx.getString(R.string.t318, app.pkg, level.label))
+    }
+
+    @Synchronized
+    fun bindSignature(ctx: Context, uid: Int, sigHash: String) {
+        val entry = allowed(ctx).firstOrNull { it.uid == uid } ?: return
+        val allowed = read(ctx, ALLOWED)
+        allowed.removeAll { decode(it)?.uid == uid }
+        allowed.add(encode(entry.copy(sigHash = sigHash)))
+        write(ctx, ALLOWED, allowed)
+        log(ctx, ctx.getString(R.string.t319, entry.pkg))
+    }
+
+    @Synchronized
+    fun resetToPending(ctx: Context, app: App) {
+        val allowed = read(ctx, ALLOWED)
+        allowed.removeAll { decode(it)?.uid == app.uid }
+        write(ctx, ALLOWED, allowed)
+        addPending(ctx, app)
+        log(ctx, ctx.getString(R.string.t320, app.pkg))
+    }
+
+    @Synchronized
+    fun pruneExpired(ctx: Context): Int {
+        val expired = allowed(ctx).filter { it.expired }
+        if (expired.isEmpty()) return 0
+        val allowed = read(ctx, ALLOWED)
+        expired.forEach { entry ->
+            allowed.removeAll { decode(it)?.uid == entry.uid }
+            log(ctx, ctx.getString(R.string.t321, entry.pkg))
+        }
+        write(ctx, ALLOWED, allowed)
+        return expired.size
     }
 
     @Synchronized
@@ -104,7 +162,7 @@ object AccessStore {
         val pending = read(ctx, PENDING)
         pending.removeAll { decode(it)?.uid == app.uid }
         write(ctx, PENDING, pending)
-        log(ctx, "${app.pkg} ОТКЛОНЕНО пользователем")
+        log(ctx, ctx.getString(R.string.t322, app.pkg))
     }
 
     @Synchronized
@@ -112,13 +170,15 @@ object AccessStore {
         val allowed = read(ctx, ALLOWED)
         allowed.removeAll { decode(it)?.uid == app.uid }
         write(ctx, ALLOWED, allowed)
-        log(ctx, "${app.pkg} ДОСТУП ОТОЗВАН")
+        log(ctx, ctx.getString(R.string.t323, app.pkg))
     }
 
     @Synchronized
     fun log(ctx: Context, line: String) {
         val time = SimpleDateFormat("dd.MM HH:mm:ss", Locale.getDefault()).format(Date())
-        val clean = line.replace('\n', ' ').replace('\r', ' ').take(160)
+
+        val clean = SecretMask.mask(line)
+            .replace('\n', ' ').replace('\r', ' ').take(160)
         val lines = readLog(ctx).lines().filter { it.isNotBlank() }.takeLast(MAX_LOG - 1)
         prefs(ctx).edit().putString(LOG, (lines + "$time $clean").joinToString("\n")).apply()
     }
@@ -131,4 +191,3 @@ object AccessStore {
         prefs(ctx).edit().remove(LOG).apply()
     }
 }
-

@@ -51,6 +51,9 @@
             android:name=".AccessRequestReceiver"
             android:exported="false" />
         <receiver
+            android:name=".DangerConfirmReceiver"
+            android:exported="false" />
+        <receiver
             android:name=".BootReceiver"
             android:exported="false">
             <intent-filter>
@@ -61,6 +64,37 @@
             android:name=".BridgeProvider"
             android:authorities="com.sitikplay.foxhole.bridge"
             android:exported="true" />
+
+<service
+            android:name=".ServerTileService"
+            android:exported="true"
+            android:icon="@mipmap/foxhole_icon"
+            android:label="@string/t388"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+<receiver
+            android:name=".ServerWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/server_widget_info" />
+        </receiver>
+
+<service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
     </application>
 
 </manifest>

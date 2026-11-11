@@ -15,7 +15,7 @@ class DeletedCleanupWorker(context: Context, params: WorkerParameters) :
     override fun doWork(): Result {
         val n = DeletedStore.cleanup(applicationContext)
         if (n > 0) {
-            AccessStore.log(applicationContext, "корзина: автоочистка — удалено записей: $n")
+            AccessStore.log(applicationContext, applicationContext.getString(R.string.t361, n))
         }
         return Result.success()
     }
@@ -37,7 +37,8 @@ class DeletedCleanupWorker(context: Context, params: WorkerParameters) :
 class FoxholeApp : Application() {
     override fun onCreate() {
         super.onCreate()
+
+        SecretVault.migrate(this)
         DeletedCleanupWorker.schedule(this)
     }
 }
-

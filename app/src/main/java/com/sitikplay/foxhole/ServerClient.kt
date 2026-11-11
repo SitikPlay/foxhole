@@ -9,20 +9,28 @@ object ServerClient {
 
     private val tokenLock = Any()
 
+    @Volatile
+    private var cachedToken: String? = null
+
     fun token(ctx: Context): String = synchronized(tokenLock) {
-        val prefs = ctx.getSharedPreferences("foxhole", Context.MODE_PRIVATE)
-        prefs.getString("token", null)?.let { return@synchronized it }
-        val b = ByteArray(16)
-        SecureRandom().nextBytes(b)
-        val t = b.joinToString("") { "%02x".format(it) }
-        prefs.edit().putString("token", t).apply()
+        cachedToken?.let { return@synchronized it }
+        SecretVault.migrate(ctx)
+        val blob = SecretVault.getSecureString(ctx, "server_token")
+        val t = blob?.let { SecretVault.decryptString(it) }?.takeIf { it.isNotBlank() } ?: newToken(ctx)
+        cachedToken = t
         t
     }
 
-    fun resetToken(ctx: Context): String = synchronized(tokenLock) {
-        ctx.getSharedPreferences("foxhole", Context.MODE_PRIVATE).edit().remove("token").apply()
-        token(ctx)
+    fun newToken(ctx: Context): String = synchronized(tokenLock) {
+        val b = ByteArray(16)
+        SecureRandom().nextBytes(b)
+        val t = b.joinToString("") { "%02x".format(it) }
+        SecretVault.putSecureString(ctx, "server_token", SecretVault.encryptString(t))
+        cachedToken = t
+        t
     }
+
+    fun resetToken(ctx: Context): String = newToken(ctx)
 
     fun request(ctx: Context, cmd: String): String {
         return try {
@@ -40,4 +48,3 @@ object ServerClient {
         }
     }
 }
-

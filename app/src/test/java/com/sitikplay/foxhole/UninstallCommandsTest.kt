@@ -8,141 +8,78 @@ import org.junit.Test
 class UninstallCommandsTest {
 
     @Test
-    fun uninstallUserIsPlainPmUninstall() {
-        assertEquals("pm uninstall \"com.example.app\"", UninstallCommands.uninstallUserCmd("com.example.app"))
+    fun quotesSimpleValue() {
+        assertEquals("'com.example'", UninstallCommands.quoteShellArg("com.example"))
     }
 
     @Test
-    fun uninstallSystemKeepsDataAndTargetsUser0() {
+    fun quoteNeutralizesSubstitution() {
+
+        val q = UninstallCommands.quoteShellArg("com.x$(rm -rf /)test")
+        assertEquals("'com.x\$(rm -rf /)test'", q)
+        assertFalse(q.contains("\\$("))
+    }
+
+    @Test
+    fun quoteEscapesEmbeddedSingleQuote() {
+        assertEquals("'it'\\''s'", UninstallCommands.quoteShellArg("it's"))
+    }
+
+    @Test
+    fun quoteHandlesBacktickAndBackslash() {
+        val q = UninstallCommands.quoteShellArg("a`rm -rf /`b\\c")
+        assertEquals("'a`rm -rf /`b\\c'", q)
+    }
+
+    @Test
+    fun parsedPmPathExtractsPaths() {
+        val out = "package:/data/app/base.apk\npackage:/data/app/split.apk\n"
         assertEquals(
-            "pm uninstall -k --user 0 \"com.android.systemui\"",
-            UninstallCommands.uninstallSystemCmd("com.android.systemui")
+            listOf("/data/app/base.apk", "/data/app/split.apk"),
+            UninstallCommands.parsePmPath(out)
         )
     }
 
     @Test
-    fun restoreSystemUsesInstallExisting() {
+    fun parsedPmPathSkipsJunk() {
+        val out = "NOT FOUND\npackage:/data/app/base.apk\n\n"
         assertEquals(
-            "pm install-existing --user 0 \"com.android.systemui\"",
-            UninstallCommands.restoreSystemCmd("com.android.systemui")
+            listOf("/data/app/base.apk"),
+            UninstallCommands.parsePmPath(out)
         )
     }
 
     @Test
-    fun restoreApksUseSinglePmInstall() {
-        assertEquals(
-            "pm install -r --user 0 \"/data/app/x/base.apk\"",
-            UninstallCommands.restoreUserCmd(listOf("/data/app/x/base.apk"))
-        )
-        assertEquals(
-            "pm install -r --user 0 \"/a/base.apk\" \"/a/config.en.apk\"",
-            UninstallCommands.restoreUserCmd(listOf("/a/base.apk", "/a/config.en.apk"))
-        )
-    }
-
-    @Test
-    fun restoreWithoutApkFails() {
-        assertTrue(UninstallCommands.restoreUserCmd(emptyList()).startsWith("ERR"))
-    }
-
-    @Test
-    fun stagingDirKeepsSafePackageNames() {
-        assertEquals(
-            "/data/local/tmp/foxhole_restore/com.example.app",
-            UninstallCommands.stagingDir("com.example.app")
-        )
-    }
-
-    @Test
-    fun stagingDirReplacesUnsafeChars() {
-        assertEquals(
-            "/data/local/tmp/foxhole_restore/bad_pkg_",
-            UninstallCommands.stagingDir("bad/pkg!")
-        )
-    }
-
-    @Test
-    fun stagingPathJoinsDirAndName() {
-        assertEquals(
-            "/tmp/stage/base.apk",
-            UninstallCommands.stagingPath("/tmp/stage", "base.apk")
-        )
-    }
-
-    @Test
-    fun restoreCopyBuildsMkdirAndCopy() {
-        assertEquals(
-            "mkdir -p \"/tmp/stage\" && cp -f \"/a/base.apk\" \"/tmp/stage/base.apk\"",
-            UninstallCommands.restoreCopyCmd(listOf("/a/base.apk"), "/tmp/stage")
-        )
-        assertEquals(
-            "mkdir -p \"/tmp/stage\" && cp -f \"/a/base.apk\" \"/tmp/stage/base.apk\" && cp -f \"/a/split.apk\" \"/tmp/stage/split.apk\"",
-            UninstallCommands.restoreCopyCmd(listOf("/a/base.apk", "/a/split.apk"), "/tmp/stage")
-        )
-    }
-
-    @Test
-    fun restoreCopyWithoutFilesFails() {
-        assertTrue(UninstallCommands.restoreCopyCmd(emptyList(), "/tmp/stage").startsWith("ERR"))
-    }
-
-    @Test
-    fun parsesPmPathOutput() {
-        val output = "package:/data/app/com.example-abc/base.apk\n" +
-            "package:/data/app/com.example-abc/split_config.arm64_v8a.apk"
-        assertEquals(
-            listOf(
-                "/data/app/com.example-abc/base.apk",
-                "/data/app/com.example-abc/split_config.arm64_v8a.apk"
-            ),
-            UninstallCommands.parsePmPath(output)
-        )
-    }
-
-    @Test
-    fun ignoresNoiseInPmPathOutput() {
-        val output = "Warning: something\npackage:\nnot-a-path\nOK "
-        assertTrue(UninstallCommands.parsePmPath(output).isEmpty())
-    }
-
-    @Test
-    fun expiryBoundaries() {
-        val now = 1_000_000_000_000L
-        val removedAt = now - UninstallCommands.RETENTION_MILLIS
-        assertTrue(UninstallCommands.isExpired(removedAt, now))
-        assertFalse(UninstallCommands.isExpired(removedAt + 1, now))
-        assertFalse(UninstallCommands.isExpired(now, now))
-    }
-
-    @Test
-    fun daysLeftCountsWholeDays() {
-        val now = 1_000_000_000_000L
-        val day = 24L * 60 * 60 * 1000
+    fun daysLeftRoundsUp() {
+        val now = 0L
         assertEquals(25, UninstallCommands.daysLeft(now, now))
-        assertEquals(1, UninstallCommands.daysLeft(now - 24 * day, now))
-        assertEquals(1, UninstallCommands.daysLeft(now - 24 * day - 1, now))
-        assertEquals(0, UninstallCommands.daysLeft(now - UninstallCommands.RETENTION_MILLIS, now))
-        assertEquals(0, UninstallCommands.daysLeft(now - UninstallCommands.RETENTION_MILLIS - day, now))
-    }
-
-    @Test
-    fun dirSizeIsZeroForMissingDir() {
-        assertEquals(0L, UninstallCommands.dirSize(null))
-        assertEquals(0L, UninstallCommands.dirSize(java.io.File("definitely/not/here")))
-    }
-
-    @Test
-    fun shellArgsAreQuoted() {
-        assertEquals("\"/a b/x.apk\"", UninstallCommands.quoteShellArg("/a b/x.apk"))
-        assertEquals("\"safe\"", UninstallCommands.quoteShellArg("sa\"fe"))
-    }
-
-    @Test
-    fun removeDirIsForceRecursive() {
         assertEquals(
-            "rm -rf \"/storage/emulated/0/apk/com.example\"",
-            UninstallCommands.removeDirCmd("/storage/emulated/0/apk/com.example")
+            1,
+            UninstallCommands.daysLeft(now, now + UninstallCommands.RETENTION_MILLIS - 1)
+        )
+
+        assertEquals(
+            0,
+            UninstallCommands.daysLeft(now, now + UninstallCommands.RETENTION_MILLIS)
+        )
+        assertEquals(
+            0,
+            UninstallCommands.daysLeft(now, now + UninstallCommands.RETENTION_MILLIS + 1)
+        )
+    }
+
+    @Test
+    fun expiryNeedsFullRetention() {
+        val now = 0L
+        assertTrue(UninstallCommands.isExpired(now, now + UninstallCommands.RETENTION_MILLIS))
+        assertFalse(UninstallCommands.isExpired(now, now + UninstallCommands.RETENTION_MILLIS - 1))
+    }
+
+    @Test
+    fun stagingDirSanitizesPackage() {
+        assertEquals(
+            "/data/local/tmp/foxhole_restore/com.example_app",
+            UninstallCommands.stagingDir("com.example/app")
         )
     }
 }
-

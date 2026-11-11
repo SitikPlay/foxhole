@@ -8,36 +8,34 @@ class PairInputTest {
 
     @Test
     fun parsesPortThenCode() {
-        val parsed = parsePairInput("43135 842308", 27183)
-        assertEquals(PairParse.Ok(43135, "842308"), parsed)
+        val parsed = parsePairInputKind("43135 842308", 27183)
+        assertEquals(PairParseKind.Ok(43135, "842308"), parsed)
     }
 
     @Test
     fun parsesCodeThenPort() {
-        val parsed = parsePairInput("код 842308, порт 43135", 27183)
-        assertEquals(PairParse.Ok(43135, "842308"), parsed)
+        val parsed = parsePairInputKind("код 842308, порт 43135", 27183)
+        assertEquals(PairParseKind.Ok(43135, "842308"), parsed)
     }
 
     @Test
     fun rejectsMissingCode() {
-        assertTrue(parsePairInput("43135", 27183) is PairParse.Error)
+        assertTrue(parsePairInputKind("43135", 27183) is PairParseKind.Invalid)
     }
 
     @Test
     fun rejectsServerPort() {
-        assertTrue(parsePairInput("27183 842308", 27183) is PairParse.Error)
+        assertTrue(parsePairInputKind("27183 842308", 27183) is PairParseKind.ReservedPort)
     }
 
     @Test
     fun rejectsInvalidPort() {
-        assertTrue(parsePairInput("70000 842308", 27183) is PairParse.Error)
+        assertTrue(parsePairInputKind("70000 842308", 27183) is PairParseKind.Invalid)
     }
 
     @Test
-    fun pairPortErrorFlagsReservedPortOnly() {
-        val err = pairPortError(27183, 27183)
-        assertTrue(err?.contains("порт сервера") == true)
-        assertEquals(null, pairPortError(41221, 27183))
+    fun reservedPortFlaggedOnlyForReserved() {
+        assertTrue(parsePairInputKind("27183 842308", 27183) is PairParseKind.ReservedPort)
+        assertTrue(parsePairInputKind("41221 842308", 27183) is PairParseKind.Ok)
     }
 }
-

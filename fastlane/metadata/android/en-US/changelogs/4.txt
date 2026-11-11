@@ -1,0 +1,7 @@
+Quick settings tile and home-screen widget to start and stop the server.
+Device confirmation (biometrics or PIN) before granting access.
+Command profiles with validated slots; terminal with masked history.
+Device report and app activity statistics.
+Secrets encrypted with Android Keystore; request rate limiting.
+Fallback host:port address when auto-discovery fails on some firmware.
+New PC helper: foxhole-adb, a friendly wrapper around the official adb (Russian interface, guarded commands, bundled platform-tools).

@@ -20,30 +20,38 @@ object AccessNotifications {
     const val ACTION_ALLOW = "com.sitikplay.foxhole.action.ALLOW_ACCESS"
     const val ACTION_DENY = "com.sitikplay.foxhole.action.DENY_ACCESS"
 
+    const val ACTION_DANGER_RUN = "com.sitikplay.foxhole.action.RUN_DANGER"
+    const val ACTION_DANGER_DENY = "com.sitikplay.foxhole.action.DENY_DANGER"
+
     const val EXTRA_UID = "uid"
+    const val EXTRA_DANGER_ID = "danger_id"
 
     const val AUTOSTART_NOTIFY_ID = 2999_999
 
+    const val START_RESULT_NOTIFY_ID = 6000_000
+
     fun notifyId(uid: Int): Int = uid
+
+    fun dangerNotifyId(uid: Int): Int = uid + 4000_000
 
     fun ensureChannels(ctx: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = ctx.getSystemService(NotificationManager::class.java) ?: return
         manager.createNotificationChannel(
             NotificationChannel(
-                CHANNEL_ACCESS, "Запросы доступа",
+                CHANNEL_ACCESS, ctx.getString(R.string.t303),
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Кто-то просит доступ к Foxhole"
+                description = ctx.getString(R.string.t304)
                 setShowBadge(true)
             }
         )
         manager.createNotificationChannel(
             NotificationChannel(
-                CHANNEL_AUTOSTART, "Автозапуск сервера",
+                CHANNEL_AUTOSTART, ctx.getString(R.string.t305),
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Результат автозапуска сервера после перезагрузки"
+                description = ctx.getString(R.string.t306)
                 setShowBadge(false)
             }
         )
@@ -66,14 +74,14 @@ object AccessNotifications {
         }
     }
 
+    private fun canPost(ctx: Context): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+
     fun notifyPending(ctx: Context, app: AccessStore.App) {
         ensureChannels(ctx)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
+        if (!canPost(ctx)) return
         val uid = app.uid
         val allow = PendingIntent.getBroadcast(
             ctx, uid,
@@ -95,8 +103,14 @@ object AccessNotifications {
                 .putExtra(MainActivity.EXTRA_OPEN_PENDING, true),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val title = "Foxhole: запрос доступа"
-        val text = "${appLabel(ctx, uid)} (uid $uid) хочет выполнять shell-команды"
+        val title = ctx.getString(R.string.t307)
+        val sharedMark = try {
+            val n = ctx.packageManager.getPackagesForUid(uid)?.count { it.isNotBlank() } ?: 0
+            if (n > 1) ctx.getString(R.string.t308, n) else ""
+        } catch (e: Exception) {
+            ""
+        }
+        val text = ctx.getString(R.string.t309, appLabel(ctx, uid), uid, sharedMark)
         val notification = NotificationCompat.Builder(ctx, CHANNEL_ACCESS)
             .setSmallIcon(R.drawable.ic_settings)
             .setContentTitle(title)
@@ -104,8 +118,8 @@ object AccessNotifications {
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(open)
             .setAutoCancel(true)
-            .addAction(0, "Разрешить (READ)", allow)
-            .addAction(0, "Отклонить", deny)
+            .addAction(0, ctx.getString(R.string.t310), allow)
+            .addAction(0, ctx.getString(R.string.t311), deny)
             .build()
         try {
             NotificationManagerCompat.from(ctx).notify(notifyId(uid), notification)
@@ -120,14 +134,55 @@ object AccessNotifications {
         }
     }
 
+    fun notifyDangerConfirm(ctx: Context, uid: Int, id: String, risk: String) {
+        ensureChannels(ctx)
+        if (!canPost(ctx)) return
+        val run = PendingIntent.getBroadcast(
+            ctx, uid,
+            Intent(ctx, DangerConfirmReceiver::class.java)
+                .setAction(ACTION_DANGER_RUN)
+                .putExtra(EXTRA_DANGER_ID, id),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val deny = PendingIntent.getBroadcast(
+            ctx, uid + 1,
+            Intent(ctx, DangerConfirmReceiver::class.java)
+                .setAction(ACTION_DANGER_DENY)
+                .putExtra(EXTRA_DANGER_ID, id),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val open = PendingIntent.getActivity(
+            ctx, uid + 2,
+            Intent(ctx, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val text = ctx.getString(R.string.t383, appLabel(ctx, uid), risk)
+        val notification = NotificationCompat.Builder(ctx, CHANNEL_ACCESS)
+            .setSmallIcon(R.drawable.ic_settings)
+            .setContentTitle(ctx.getString(R.string.t382))
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .addAction(0, ctx.getString(R.string.t384), run)
+            .addAction(0, ctx.getString(R.string.t385), deny)
+            .build()
+        try {
+            NotificationManagerCompat.from(ctx).notify(dangerNotifyId(uid), notification)
+        } catch (e: SecurityException) {
+        }
+    }
+
+    fun cancelDanger(ctx: Context, uid: Int) {
+        try {
+            NotificationManagerCompat.from(ctx).cancel(dangerNotifyId(uid))
+        } catch (e: Exception) {
+        }
+    }
+
     fun notifyAutostart(ctx: Context, success: Boolean, text: String) {
         ensureChannels(ctx)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
+        if (!canPost(ctx)) return
         val open = PendingIntent.getActivity(
             ctx, 3000_000,
             Intent(ctx, MainActivity::class.java),
@@ -135,7 +190,9 @@ object AccessNotifications {
         )
         val notification = NotificationCompat.Builder(ctx, CHANNEL_AUTOSTART)
             .setSmallIcon(R.drawable.ic_settings)
-            .setContentTitle(if (success) "Foxhole запущен после перезагрузки" else "Автозапуск Foxhole не удался")
+            .setContentTitle(
+                if (success) ctx.getString(R.string.t312) else ctx.getString(R.string.t313)
+            )
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(open)
@@ -143,6 +200,30 @@ object AccessNotifications {
             .build()
         try {
             NotificationManagerCompat.from(ctx).notify(AUTOSTART_NOTIFY_ID, notification)
+        } catch (e: SecurityException) {
+        }
+    }
+
+    fun notifyStartResult(ctx: Context, success: Boolean, text: String) {
+        ensureChannels(ctx)
+        if (!canPost(ctx)) return
+        val open = PendingIntent.getActivity(
+            ctx, 3600_000,
+            Intent(ctx, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = NotificationCompat.Builder(ctx, CHANNEL_AUTOSTART)
+            .setSmallIcon(R.drawable.ic_settings)
+            .setContentTitle(
+                if (success) ctx.getString(R.string.t392) else ctx.getString(R.string.t393)
+            )
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .build()
+        try {
+            NotificationManagerCompat.from(ctx).notify(START_RESULT_NOTIFY_ID, notification)
         } catch (e: SecurityException) {
         }
     }
@@ -158,11 +239,11 @@ class AccessRequestReceiver : BroadcastReceiver() {
         when (intent.action) {
             AccessNotifications.ACTION_ALLOW -> {
                 AccessStore.allow(context, app, AclLevel.READ)
-                AccessStore.log(context, "${app.pkg}: доступ READ выдан из уведомления")
+                AccessStore.log(context, context.getString(R.string.t314, app.pkg))
             }
             AccessNotifications.ACTION_DENY -> {
                 AccessStore.deny(context, app)
-                AccessStore.log(context, "${app.pkg}: отклонено из уведомления")
+                AccessStore.log(context, context.getString(R.string.t315, app.pkg))
             }
             else -> return
         }
@@ -170,3 +251,27 @@ class AccessRequestReceiver : BroadcastReceiver() {
     }
 }
 
+class DangerConfirmReceiver : BroadcastReceiver() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        val id = intent.getStringExtra(AccessNotifications.EXTRA_DANGER_ID) ?: return
+        when (intent.action) {
+            AccessNotifications.ACTION_DANGER_RUN ->
+                DangerApprovals.setDecision(context, id, approved = true)
+            AccessNotifications.ACTION_DANGER_DENY ->
+                DangerApprovals.setDecision(context, id, approved = false)
+            else -> return
+        }
+
+        val uid = DangerApprovals.findUid(context, id)
+        if (uid != null) {
+            AccessNotifications.cancelDanger(context, uid)
+            val label = AccessNotifications.appLabel(context, uid)
+            if (intent.action == AccessNotifications.ACTION_DANGER_RUN) {
+                AccessStore.log(context, context.getString(R.string.t386, label))
+            } else {
+                AccessStore.log(context, context.getString(R.string.t387, label))
+            }
+        }
+    }
+}

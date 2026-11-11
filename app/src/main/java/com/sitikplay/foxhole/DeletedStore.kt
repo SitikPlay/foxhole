@@ -69,7 +69,7 @@ object DeletedStore {
                 try {
                     File(r.apkDir).deleteRecursively()
                 } catch (e: Exception) {
-                    AccessStore.log(ctx, "корзина: не удалось удалить APK ${r.pkg}: ${e.message}")
+                    AccessStore.log(ctx, ctx.getString(R.string.t362, r.pkg, e.message ?: ""))
                 }
             }
             remove(ctx, r.pkg)
@@ -80,4 +80,3 @@ object DeletedStore {
     fun bytes(ctx: Context): Long =
         all(ctx).sumOf { UninstallCommands.dirSize(it.apkDir?.let { d -> File(d) }) }
 }
-

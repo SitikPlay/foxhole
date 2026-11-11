@@ -14,8 +14,8 @@ android {
         applicationId = "com.sitikplay.foxhole"
         minSdk = 26
         targetSdk = 37
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -57,4 +57,6 @@ dependencies {
     implementation("com.github.MuntashirAkon:sun-security-android:1.1")
     implementation("org.conscrypt:conscrypt-android:2.5.3")
     implementation("androidx.work:work-runtime-ktx:2.10.0")
+
+    implementation("androidx.biometric:biometric:1.1.0")
 }
