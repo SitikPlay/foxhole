@@ -1,6 +1,6 @@
 # foxhole-adb
 
-На ПК-компаньон для [Foxhole](../../README.md): одна программа `foxhole-adb.exe`,
+На ПК-компаньон для [Foxhole](../../README.md): одна программа `fx.exe`,
 которая говорит с телефоном через **официальный adb (platform-tools)**.
 Своего протокола ADB в ней нет — она только собирает корректные аргументы
 и запускает `adb` без shell, поэтому мета-символы (`;`, `|`, `&`) в аргументах
@@ -14,7 +14,7 @@
 
 1. Скачай релиз `android-v*`/`adb-v*` со страницы Releases репозитория
    (или собери сам: `go build .` — нужен установленный [Go](https://go.dev)).
-2. Положи `foxhole-adb.exe` в любую папку.
+2. Положи `fx.exe` в любую папку.
 3. `foxhole-adb doctor` — покажет, найден ли adb и что видит.
    В сборке из `tools/foxhole-adb/` adb уже встроен рядом с exe и ничего
    дополнительно не требуется.
@@ -31,7 +31,7 @@ foxhole-adb fetch
 Google не публикует sha-суммы к zip «latest», поэтому честная проверка такая:
 после распаковки `fetch` сам запускает `adb version` и показывает результат.
 
-Переносимый вариант рядом с `foxhole-adb.exe`: в комплект кладётся папка
+Переносимый вариант рядом с `fx.exe`: в комплект кладётся папка
 `platform-tools` (только `adb.exe` + `AdbWinApi.dll` + `AdbWinUsbApi.dll` —
 файлы официального adb, Apache-2.0, распространяются по NOTICE Google).
 В локальной сборке `tools\foxhole-adb\` она уже есть — поэтому
@@ -41,7 +41,7 @@ Google не публикует sha-суммы к zip «latest», поэтому 
 
 1. флаг `--adb ПУТЬ`;
 2. переменная окружения `FOXHOLE_ADB`;
-3. папка `platform-tools` рядом с `foxhole-adb.exe` (переносимый zip);
+3. папка `platform-tools` рядом с `fx.exe` (переносимый zip);
 4. `adb` из PATH;
 5. `%LOCALAPPDATA%\Foxhole\platform-tools\adb.exe` — куда кладёт `fetch`.
 
@@ -112,7 +112,7 @@ zip-slip, список режимов reboot, работа глобальных 
 
 ## foxhole-adb (English)
 
-A PC companion for Foxhole: one binary `foxhole-adb.exe` that talks to the
+A PC companion for Foxhole: one binary `fx.exe` that talks to the
 phone through the **official adb (platform-tools)**. It contains no ADB
 protocol of its own; it builds arguments and spawns `adb` without a shell,
 so metacharacters (`;`, `|`, `&`) in arguments are safe.

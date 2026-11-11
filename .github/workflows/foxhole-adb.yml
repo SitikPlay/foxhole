@@ -62,8 +62,11 @@ jobs:
           case "$GITHUB_REF_NAME" in
             adb-v*) VERSION="$GITHUB_REF_NAME" ;;
           esac
-          out="foxhole-adb-${{ matrix.os }}-${{ matrix.arch }}"
-          if [ "${{ matrix.os }}" = "windows" ]; then out="$out.exe"; fi
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            out="fx.exe"
+          else
+            out="foxhole-adb-${{ matrix.os }}-${{ matrix.arch }}"
+          fi
           go build -trimpath -ldflags "-s -w -X main.version=$VERSION" -o "$out" .
 
       - name: Zip (portable)
@@ -72,7 +75,7 @@ jobs:
           mkdir -p out
           if [ "${{ matrix.os }}" = "windows" ]; then
             mkdir -p "out/staging/platform-tools"
-            cp "foxhole-adb-windows-amd64.exe" "out/staging/"
+            cp "fx.exe" "out/staging/"
             cp platform-tools/adb.exe platform-tools/AdbWinApi.dll \
                platform-tools/AdbWinUsbApi.dll "out/staging/platform-tools/"
             (cd "out/staging" && zip -r "../foxhole-adb-windows-amd64.zip" .)
