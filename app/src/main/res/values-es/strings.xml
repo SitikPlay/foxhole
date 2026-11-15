@@ -382,4 +382,5 @@
     <string name="t380">¿Desactivar los avisos de comandos peligrosos?</string>
     <string name="t381">Comandos como desinstalar aplicaciones o borrar archivos se ejecutarán sin explicación. Es un ajuste de protección: ¿seguro que quieres desactivarlo?</string>
     <string name="t460">El inicio fue interrumpido</string>
+    <string name="t461">Servidor Foxhole no disponible (%1$s)</string>
 </resources>

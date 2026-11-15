@@ -1255,6 +1255,7 @@ class MainActivity : AppCompatActivity() {
             if (ok) {
                 setStatus(false)
                 Settings.setStoppedBootCount(this, currentBootCount())
+                ServerWidgetProvider.refreshAllWidgets(this)
                 snack(
                     if (Settings.bootStart(this)) {
                         getString(R.string.t076)
@@ -1262,7 +1263,7 @@ class MainActivity : AppCompatActivity() {
                         getString(R.string.t069)
                     }
                 )
-            } else if (res.contains("сервер недоступен")) {
+            } else if (ServerClient.isUnavailable(res)) {
                 setStatus(false)
                 Settings.setStoppedBootCount(this, currentBootCount())
                 snack(getString(R.string.t078))
@@ -2442,7 +2443,7 @@ class MainActivity : AppCompatActivity() {
 
             TerminalHistory.record(this, c)
             bg(c, { ServerClient.request(this, c) }) { res ->
-                if (res.startsWith("ERR сервер недоступен")) setStatus(false)
+                if (ServerClient.isUnavailable(res)) setStatus(false)
 
                 AccessStore.log(
                     this@MainActivity,
@@ -2495,7 +2496,11 @@ class MainActivity : AppCompatActivity() {
         val ok = res.startsWith("OK|")
         val msg = res.substringAfter("|")
         snack(msg, error = !ok)
-        if (ok && msg.startsWith(getString(R.string.t161))) setStatus(true)
+        if (ok && msg.startsWith(getString(R.string.t161))) {
+            setStatus(true)
+            // В1: сервер запущен из приложения — виджет обновляем сразу.
+            ServerWidgetProvider.refreshAllWidgets(this)
+        }
         if (!ok) onError(msg)
     }
 

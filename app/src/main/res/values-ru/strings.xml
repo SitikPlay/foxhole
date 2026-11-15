@@ -466,4 +466,5 @@
     <string name="t458">Проверьте формат адрес:порт (порт 1024–65535)</string>
     <string name="t459">Резервный адрес очищен</string>
     <string name="t460">Запуск прерван</string>
+    <string name="t461">Сервер Foxhole недоступен (%1$s)</string>
 </resources>

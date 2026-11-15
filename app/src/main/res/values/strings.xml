@@ -468,4 +468,5 @@
     <string name="t458">Check the format host:port (port 1024–65535)</string>
     <string name="t459">Fallback address cleared</string>
     <string name="t460">Start was interrupted</string>
+    <string name="t461">Foxhole server unreachable (%1$s)</string>
 </resources>

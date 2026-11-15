@@ -65,6 +65,9 @@ class ServerTileService : TileService() {
             applyState(false)
             Thread {
                 ServerClient.request(this, "stop")
+                // В1: состояние сервера сменилось — виджет должен узнать об этом
+                // сразу, а не при следующем плановом обновлении.
+                ServerWidgetProvider.refreshAllWidgets(this)
             }.start()
             return
         }
@@ -84,6 +87,8 @@ class ServerTileService : TileService() {
                     this, if (res.startsWith("OK")) "плитка: сервер запущен" else "плитка: $res"
                 )
                 handler.post { applyState(res.startsWith("OK")) }
+                // В1: обновляем виджет и после запуска.
+                ServerWidgetProvider.refreshAllWidgets(this)
             }.start()
             return
         }

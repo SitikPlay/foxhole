@@ -12,6 +12,8 @@ object ServerClient {
     @Volatile
     private var cachedToken: String? = null
 
+    private const val UNAVAILABLE_PREFIX = "ERR|"
+
     fun token(ctx: Context): String = synchronized(tokenLock) {
         cachedToken?.let { return@synchronized it }
         SecretVault.migrate(ctx)
@@ -32,6 +34,13 @@ object ServerClient {
 
     fun resetToken(ctx: Context): String = newToken(ctx)
 
+    // Клиентская ошибка «до сервера не достучались» (сервер не отвечает — это не
+    // его ответ). Стабильный машинный префикс "ERR|" отличает её от ответов
+    // сервера ("OK …" / "ERR code=…"), по нему UI решает, гасить ли статус.
+    // А9: раньше здесь был захардкоженный русский текст — на других локалях
+    // проверки по подстроке ломались.
+    fun isUnavailable(res: String): Boolean = res.startsWith(UNAVAILABLE_PREFIX)
+
     fun request(ctx: Context, cmd: String): String {
         return try {
             Socket().use { s ->
@@ -44,7 +53,7 @@ object ServerClient {
                 s.getInputStream().bufferedReader().readText().trim()
             }
         } catch (e: Exception) {
-            "ERR сервер недоступен: ${e.message}"
+            UNAVAILABLE_PREFIX + ctx.getString(R.string.t461, e.message ?: "")
         }
     }
 }

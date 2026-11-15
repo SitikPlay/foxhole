@@ -382,4 +382,5 @@
     <string name="t380">关闭危险命令警告？</string>
     <string name="t381">卸载应用、删除文件等命令将不再显示说明。这是保护性设置——确定要关闭吗？</string>
     <string name="t460">启动已中断</string>
+    <string name="t461">Foxhole 服务器不可达（%1$s）</string>
 </resources>
