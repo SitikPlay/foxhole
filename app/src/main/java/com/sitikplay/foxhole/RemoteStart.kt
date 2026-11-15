@@ -19,8 +19,10 @@ object RemoteStart {
         val cm = ctx.getSystemService(ConnectivityManager::class.java) ?: return false
         val net = cm.activeNetwork ?: return false
         val caps = cm.getNetworkCapabilities(net) ?: return false
-        return caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
-            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        // А13: раньше требовали NET_CAPABILITY_VALIDATED — на Wi-Fi без проверки
+        // (captive portal) автозапуск вечно ждал «подключения». Достаточно
+        // самого транспорта Wi-Fi.
+        return caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
     }
 
     private fun permissionGranted(ctx: Context): Boolean =
@@ -57,7 +59,12 @@ object RemoteStart {
         }
         val wifiAt = System.currentTimeMillis()
         while (!wifiConnected(ctx) && System.currentTimeMillis() - wifiAt < wifiTimeoutMs) {
-            Thread.sleep(wifiStepMs)
+            try {
+                Thread.sleep(wifiStepMs)
+            } catch (e: InterruptedException) {
+                // А4: прерывание фонового потока раньше убивало весь процесс.
+                return "ERR|" + ctx.getString(R.string.t460)
+            }
         }
         if (!wifiConnected(ctx)) {
             return "ERR|" + ctx.getString(R.string.t329)
@@ -75,8 +82,19 @@ object RemoteStart {
         }
         val result = try {
             runBoot(ctx)
+        } catch (e: InterruptedException) {
+            // А4: прерывание фонового потока раньше убивало весь процесс
+            // (неперехваченное исключение в потоке). Гасим поток штатно.
+            if (turnedOn && disableWifiAfter) {
+                try {
+                    writeWifiDebugging(ctx, 0)
+                } catch (ignored: Exception) {
+                }
+            }
+            "ERR|" + ctx.getString(R.string.t460)
         } catch (e: Exception) {
-            "ERR|${e.javaClass.simpleName}: ${e.message ?: ""}"
+            // А14: вместо имени класса и сырого текста — понятное сообщение
+            "ERR|" + friendlyAdbError(ctx, e)
         }
         if (turnedOn && disableWifiAfter) {
             try {
@@ -121,23 +139,29 @@ object RemoteStart {
         if (!connected) {
             return "ERR|" + ctx.getString(R.string.t335)
         }
-        val path = ServerScript.write(ctx) ?: return "ERR|" + ctx.getString(R.string.t336)
+        // А8: после подключения adb-соединение должно закрываться на любом
+        // пути выхода — раньше при неудаче записи скрипта или таймауте ping
+        // соединение оставалось висеть.
         try {
-            val stream = adb.openStream("shell:sh \"$path\"")
-            Thread.sleep(4000)
-            runCatching { stream.close() }
-            adb.disconnect()
-        } catch (e: Exception) {
-            return "ERR|" + ctx.getString(R.string.t337, e.message ?: "")
-        }
-        val pingAt = System.currentTimeMillis()
-        while (System.currentTimeMillis() - pingAt < PING_TIMEOUT_MS) {
-            val res = ServerClient.request(ctx, "ping")
-            if (res.startsWith("OK pong")) {
-                return "OK|" + ctx.getString(R.string.t338, service.first, service.second)
+            val path = ServerScript.write(ctx) ?: return "ERR|" + ctx.getString(R.string.t336)
+            try {
+                val stream = adb.openStream("shell:sh \"$path\"")
+                Thread.sleep(4000)
+                runCatching { stream.close() }
+            } catch (e: Exception) {
+                return "ERR|" + ctx.getString(R.string.t337, e.message ?: "")
             }
-            Thread.sleep(1_000)
+            val pingAt = System.currentTimeMillis()
+            while (System.currentTimeMillis() - pingAt < PING_TIMEOUT_MS) {
+                val res = ServerClient.request(ctx, "ping")
+                if (res.startsWith("OK pong")) {
+                    return "OK|" + ctx.getString(R.string.t338, service.first, service.second)
+                }
+                Thread.sleep(1_000)
+            }
+            return "ERR|" + ctx.getString(R.string.t339)
+        } finally {
+            runCatching { adb.disconnect() }
         }
-        return "ERR|" + ctx.getString(R.string.t339)
     }
 }

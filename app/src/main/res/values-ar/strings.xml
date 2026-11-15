@@ -381,4 +381,5 @@
     <string name="t379">يوقف التطبيقات قسراً أو يقتلها: am force-stop/kill/crash.</string>
     <string name="t380">تعطيل التحذيرات من الأوامر الخطرة؟</string>
     <string name="t381">ستعمل أوامر مثل إزالة التطبيقات أو حذف الملفات دون شرح. هذا إعداد وقائي — هل تريد حقاً تعطيله؟</string>
+    <string name="t460">تم مقاطعة بدء التشغيل</string>
 </resources>

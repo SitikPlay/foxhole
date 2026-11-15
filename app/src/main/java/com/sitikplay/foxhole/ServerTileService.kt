@@ -49,7 +49,17 @@ class ServerTileService : TileService() {
     }
 
     override fun onClick() {
-        val online = ServerClient.request(this, "ping").startsWith("OK pong")
+        // А1 (подтверждено на устройстве): ping выполнялся прямо на главном
+        // потоке — Android рвал его с NetworkOnMainThreadException, исключение
+        // глоталось в ServerClient, и плитка всегда считала сервер выключенным.
+        // Проверяем статус в фоне и уже оттуда решаем, что делать.
+        Thread {
+            val online = ServerClient.request(this, "ping").startsWith("OK pong")
+            handler.post { actOnServerState(online) }
+        }.start()
+    }
+
+    private fun actOnServerState(online: Boolean) {
         if (online) {
 
             applyState(false)
@@ -59,7 +69,7 @@ class ServerTileService : TileService() {
             return
         }
         if (FoxholeAdb.hasKey(this)) {
-            handler.post { setStartingState() }
+            setStartingState()
             Thread {
                 val res = RemoteStart.run(
                     this,

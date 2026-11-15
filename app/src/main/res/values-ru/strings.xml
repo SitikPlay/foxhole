@@ -465,4 +465,5 @@
     <string name="t457">Адрес сохранён</string>
     <string name="t458">Проверьте формат адрес:порт (порт 1024–65535)</string>
     <string name="t459">Резервный адрес очищен</string>
+    <string name="t460">Запуск прерван</string>
 </resources>

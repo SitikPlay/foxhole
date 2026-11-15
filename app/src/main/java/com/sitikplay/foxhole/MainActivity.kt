@@ -342,7 +342,12 @@ class MainActivity : AppCompatActivity() {
                     button(getString(R.string.t017)) {
                         send(terminalInput?.text?.toString().orEmpty())
                     },
-                    button(getString(R.string.t018), outlined = true) { out.text = "" }
+                    button(getString(R.string.t018), outlined = true) {
+                        out.text = ""
+                        // Пересчитываем высоту: после очистки консоль возвращается
+                        // к базовому размеру, а не остаётся раздутой от старых логов.
+                        updateConsoleHeight()
+                    }
                 )
             )
             addView(space(16))
@@ -2601,6 +2606,26 @@ class MainActivity : AppCompatActivity() {
         out.text =
             if (restCapped.isEmpty()) block else TextUtils.concat(block, "\n\n", restCapped)
         terminalScroll?.scrollTo(0, 0)
+        updateConsoleHeight()
+    }
+
+    // Пересчитывает высоту консоли: от базового размера она растёт по объёму логов,
+    // выше доли экрана не поднимается — дальше работает внутренняя прокрутка.
+    private fun updateConsoleHeight() {
+        val scroll = terminalScroll ?: return
+        // Ждём завершения прохода разметки: высота текста известна только после layout.
+        scroll.post {
+            val lp = scroll.layoutParams as? LinearLayout.LayoutParams ?: return@post
+            val density = resources.displayMetrics.density
+            // out внутри ScrollView с WRAP_CONTENT, поэтому его высота — полный размер лога.
+            val contentDp = (out.height / density + 0.5f).toInt()
+            val screenDp = (resources.displayMetrics.heightPixels / density + 0.5f).toInt()
+            val targetPx = (ConsoleSizing.heightDp(contentDp, screenDp) * density + 0.5f).toInt()
+            if (lp.height != targetPx) {
+                lp.height = targetPx
+                scroll.requestLayout()
+            }
+        }
     }
 
     private fun terminalBlock(prompt: String?, body: String): CharSequence {

@@ -381,4 +381,5 @@
     <string name="t379">Força a parada ou mata apps: am force-stop/kill/crash.</string>
     <string name="t380">Desativar avisos sobre comandos perigosos?</string>
     <string name="t381">Comandos como desinstalar apps ou excluir arquivos serão executados sem explicação. Esta é uma configuração de proteção — tem certeza de que quer desativá-la?</string>
+    <string name="t460">O início foi interrompido</string>
 </resources>

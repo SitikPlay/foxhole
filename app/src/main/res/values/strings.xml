@@ -467,4 +467,5 @@
     <string name="t457">Address saved</string>
     <string name="t458">Check the format host:port (port 1024–65535)</string>
     <string name="t459">Fallback address cleared</string>
+    <string name="t460">Start was interrupted</string>
 </resources>

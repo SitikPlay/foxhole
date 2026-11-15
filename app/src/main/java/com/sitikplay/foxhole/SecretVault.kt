@@ -21,7 +21,20 @@ object SecretVault {
 
     private fun masterKey(): SecretKey {
         val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        (ks.getEntry(KEY_ALIAS, null) as? KeyStore.SecretKeyEntry)?.let { return it.secretKey }
+        try {
+            (ks.getEntry(KEY_ALIAS, null) as? KeyStore.SecretKeyEntry)?.let { return it.secretKey }
+        } catch (e: Exception) {
+            // А3: невосстановимо потерянный ключ Keystore (сброшен системой,
+            // повреждён) раньше ронял всё приложение. Ключ в этом случае
+            // потерян безвозвратно — пересоздаём его: старые blob'ы станут
+            // нечитаемыми, но существующий код это переживает (токен и ADB
+            // ключи генерируются заново). Транзиентные сбои пробрасываются.
+            if (vaultKeyLost(e)) {
+                runCatching { ks.deleteEntry(KEY_ALIAS) }
+            } else {
+                throw e
+            }
+        }
         val gen = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
         gen.init(
             KeyGenParameterSpec.Builder(
@@ -125,4 +138,17 @@ object SecretVault {
             putSecureBoolean(ctx, "adb_paired", true)
         }
     }
+}
+
+// А3: чистая функция «ключ Keystore потерян безвозвратно?» — вынесена из
+// masterKey(), чтобы покрыть JVM-тестом (сам Keystore в JVM недоступен).
+// Распознаём цепочку причин: UnrecoverableKeyException означает, что ключ
+// сброшен/повреждён и не станет читаться ни при каком повторе.
+fun vaultKeyLost(e: Throwable): Boolean {
+    var c: Throwable? = e
+    while (c != null) {
+        if (c is java.security.UnrecoverableKeyException) return true
+        c = c.cause
+    }
+    return false
 }
