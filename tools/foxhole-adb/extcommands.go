@@ -100,7 +100,7 @@ func runInteractive(adbPath string, args []string) int {
 	if ee, ok := err.(*exec.ExitError); ok {
 		return ee.ExitCode()
 	}
-	fmt.Fprintf(os.Stderr, msg("runFail")+"\n", args[0], err)
+	reportRunFail(args[0], -1, err)
 	return 1
 }
 
@@ -129,6 +129,7 @@ func explainConn(out string) string {
 	if f := strings.Fields(l); len(f) > 0 {
 		addr = f[len(f)-1]
 	}
+	lower := strings.ToLower(l)
 	switch {
 	case strings.Contains(l, "Successfully paired"):
 		return fmt.Sprintf(msg("pairOk"), addr)
@@ -136,6 +137,12 @@ func explainConn(out string) string {
 		return fmt.Sprintf(msg("connectAlready"), addr)
 	case strings.HasPrefix(l, "connected to"):
 		return fmt.Sprintf(msg("connectOk"), addr)
+	// А41: ошибки спаривания (неверный код, закрытое окно пары) и таймауты
+	// печатались сырым выводом adb — теперь у них понятный подвод.
+	case strings.Contains(lower, "failed to pair"):
+		return fmt.Sprintf(msg("pairFail"), l)
+	case strings.Contains(lower, "timed out"), strings.Contains(lower, "timeout"):
+		return fmt.Sprintf(msg("connectFail"), l)
 	case strings.HasPrefix(l, "cannot connect"),
 		strings.HasPrefix(l, "failed to authenticate"),
 		strings.HasPrefix(l, "failed to connect"):
@@ -164,7 +171,7 @@ func explainUninstall(out string) string {
 func cmdDevices(ab string, _ []string) int {
 	out, code, err := runAdb(ab, []string{"devices", "-l"})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, msg("runFail")+"\n", "devices", err)
+		reportRunFail("devices", code, err)
 		return 1
 	}
 	rows, daemonMsgs := splitDaemonNoise(strings.Split(strings.ReplaceAll(out, "\r\n", "\n"), "\n"))
@@ -435,7 +442,7 @@ func cmdUninstall(ab string, args []string) int {
 	full = append(full, rest[0])
 	out, code_, err := runAdb(ab, full)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, msg("runFail")+"\n", "uninstall", err)
+		reportRunFail("uninstall", code_, err)
 		return 1
 	}
 	fmt.Println(explainUninstall(out))
@@ -525,7 +532,7 @@ func cmdInstallMultiple(ab string, args []string) int {
 	full = append(full, args...)
 	out, code_, err := runAdb(ab, full)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, msg("runFail")+"\n", "install-multiple", err)
+		reportRunFail("install-multiple", code_, err)
 		return 1
 	}
 	fmt.Println(explainInstall(out))

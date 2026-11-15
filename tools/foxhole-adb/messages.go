@@ -206,6 +206,10 @@ Hints:
 		ru: "Не удалось снять экран: %v",
 		en: "Could not take a screenshot: %v",
 	}
+	messages["screenshotEmpty"] = ruEn{
+		ru: "adb вернул пустой вывод",
+		en: "adb returned empty output",
+	}
 
 	messages["rebootMode"] = ruEn{
 		ru: "Недопустимый режим перезагрузки: %s (пусто, recovery, bootloader, fastboot, sideload).",
@@ -224,6 +228,17 @@ Hints:
 	messages["runFail"] = ruEn{
 		ru: "adb завершился с ошибкой (%s): %s",
 		en: "adb failed (%s): %s",
+	}
+	// А39: раньше во все места подставлялся err даже когда он nil (ненулевой
+	// код выхода при успешном запуске adb) — печаталось "%!s(<nil>)".
+	messages["runFailCode"] = ruEn{
+		ru: "adb завершился с кодом %d (команда %s). Подробности выше.",
+		en: "adb exited with code %d (command %s). See details above.",
+	}
+	// А41: понятный подвод для ошибок спаривания вместо сырого вывода adb.
+	messages["pairFail"] = ruEn{
+		ru: "Спаривание не удалось: %s",
+		en: "Pairing failed: %s",
 	}
 
 	messages["confirmAsk"] = ruEn{

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -19,6 +21,21 @@ func runAdb(adbPath string, args []string) (string, int, error) {
 		return text, -1, err
 	}
 	return text, 0, nil
+}
+
+// А39: единая точка печати ошибки запуска adb. Раньше во все места подставлялся
+// err даже когда он nil (adb запустился, но вышел с ненулевым кодом) —
+// получалось бессмысленное "%!s(<nil>)". Текст-функция отделена от печати,
+// чтобы поведение покрывалось тестом.
+func runFailText(cmd string, code int, err error) string {
+	if err != nil {
+		return fmt.Sprintf(msg("runFail")+"\n", cmd, err)
+	}
+	return fmt.Sprintf(msg("runFailCode")+"\n", code, cmd)
+}
+
+func reportRunFail(cmd string, code int, err error) {
+	fmt.Fprint(os.Stderr, runFailText(cmd, code, err))
 }
 
 func parseHostPort(v string, requirePort bool) (string, int, int) {
@@ -66,7 +83,7 @@ func cmdPair(adbPath string, args []string) int {
 	out, code_, err := runAdb(adbPath, []string{"pair", fmt.Sprintf("%s:%d", host, port), code})
 	fmt.Println(explainConn(out))
 	if code_ != 0 || err != nil {
-		fmt.Fprintf(os.Stderr, msg("runFail")+"\n", "pair", err)
+		reportRunFail("pair", code_, err)
 		return 1
 	}
 	return 0
@@ -89,7 +106,7 @@ func cmdConnect(adbPath string, args []string) int {
 	out, code_, err := runAdb(adbPath, []string{"connect", fmt.Sprintf("%s:%d", host, port)})
 	fmt.Println(explainConn(out))
 	if code_ != 0 || err != nil {
-		fmt.Fprintf(os.Stderr, msg("runFail")+"\n", "connect", err)
+		reportRunFail("connect", code_, err)
 		return 1
 	}
 	return 0
@@ -118,7 +135,7 @@ func cmdInstall(adbPath string, args []string) int {
 	full := []string{"install", "-r", args[0]}
 	out, code_, err := runAdb(adbPath, full)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, msg("runFail")+"\n", "install", err)
+		reportRunFail("install", code_, err)
 		return 1
 	}
 	fmt.Println(explainInstall(out))
@@ -137,7 +154,7 @@ func cmdTwo(adbPath string, subCmd string, args []string) int {
 	out, code_, err := runAdb(adbPath, full)
 	fmt.Println(out)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, msg("runFail")+"\n", subCmd, err)
+		reportRunFail(subCmd, code_, err)
 		return 1
 	}
 	if code_ != 0 {
@@ -153,12 +170,13 @@ func cmdScreenshot(adbPath string, args []string) int {
 	}
 	file := strings.TrimSpace(args[0])
 	cmd := exec.Command(adbPath, "exec-out", "screencap", "-p")
+	// А40: Output() выбрасывает stderr adb — причина сбоя пропадала.
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 	data, err := cmd.Output()
 	if err != nil || len(data) == 0 {
-		if err == nil {
-			err = fmt.Errorf("пустой вывод")
-		}
-		fmt.Fprintf(os.Stderr, msg("screenshotFail")+"\n", err)
+		ferr := screenshotFailErr(err, stderr.String())
+		fmt.Fprintf(os.Stderr, msg("screenshotFail")+"\n", ferr)
 		return 1
 	}
 	if err := os.WriteFile(file, data, 0o644); err != nil {
@@ -167,6 +185,21 @@ func cmdScreenshot(adbPath string, args []string) int {
 	}
 	fmt.Printf(msg("screenshotOk")+"\n", file, len(data))
 	return 0
+}
+
+// А40: сборка ошибки для screenshot: пустой вывод тоже ошибка (текст
+// локализован), а stderr adb добавляется к ошибке, чтобы причина не терялась.
+func screenshotFailErr(err error, stderr string) error {
+	if err == nil && len(stderr) == 0 {
+		return nil
+	}
+	if err == nil {
+		err = errors.New(msg("screenshotEmpty"))
+	}
+	if s := strings.TrimSpace(stderr); s != "" {
+		err = fmt.Errorf("%w\n%s", err, s)
+	}
+	return err
 }
 
 var rebootModes = map[string]bool{
