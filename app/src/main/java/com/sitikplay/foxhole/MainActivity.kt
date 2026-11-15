@@ -2618,18 +2618,23 @@ class MainActivity : AppCompatActivity() {
     // выше доли экрана не поднимается — дальше работает внутренняя прокрутка.
     private fun updateConsoleHeight() {
         val scroll = terminalScroll ?: return
-        // Ждём завершения прохода разметки: высота текста известна только после layout.
-        scroll.post {
-            val lp = scroll.layoutParams as? LinearLayout.LayoutParams ?: return@post
-            val density = resources.displayMetrics.density
-            // out внутри ScrollView с WRAP_CONTENT, поэтому его высота — полный размер лога.
-            val contentDp = (out.height / density + 0.5f).toInt()
-            val screenDp = (resources.displayMetrics.heightPixels / density + 0.5f).toInt()
-            val targetPx = (ConsoleSizing.heightDp(contentDp, screenDp) * density + 0.5f).toInt()
-            if (lp.height != targetPx) {
-                lp.height = targetPx
-                scroll.requestLayout()
-            }
+        val lp = scroll.layoutParams as? LinearLayout.LayoutParams ?: return
+        val density = resources.displayMetrics.density
+        // Высоту лога берём прямым измерением TextView, а не из getHeight() или
+        // слушателей разметки: сразу после setText/очистки layout ещё не выполнен,
+        // а правка layout-параметров из колбэка разметки не перепланирует ScrollView.
+        val widthSpec = android.view.View.MeasureSpec.makeMeasureSpec(
+            if (scroll.width > 0) scroll.width else resources.displayMetrics.widthPixels,
+            android.view.View.MeasureSpec.AT_MOST
+        )
+        out.measure(widthSpec, android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED))
+        // measuredHeight уже включает паддинги — это полный размер лога.
+        val contentDp = (out.measuredHeight / density + 0.5f).toInt()
+        val screenDp = (resources.displayMetrics.heightPixels / density + 0.5f).toInt()
+        val targetPx = (ConsoleSizing.heightDp(contentDp, screenDp) * density + 0.5f).toInt()
+        if (lp.height != targetPx) {
+            lp.height = targetPx
+            scroll.requestLayout()
         }
     }
 

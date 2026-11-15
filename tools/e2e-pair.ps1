@@ -242,10 +242,45 @@ function Show-App {
 }
 
 function Get-ServerToken {
+    # А37: в актуальных версиях токен хранится зашифрованным
+    # (shared_prefs/foxhole_secure.xml, значение с префиксом v1:) — расшифровать
+    # его вне приложения нельзя. Открытая копия — files/start.token, её пишет
+    # приложение вместе с start.sh (диалог «Посмотреть команду»). Незашифрованный
+    # foxhole.xml остаётся только у старых установок.
     $prefs = Sh "run-as $pkg cat shared_prefs/foxhole.xml"
     $m = [regex]::Match($prefs, '<string name="token">([^<]+)</string>')
     if ($m.Success) { return $m.Groups[1].Value.Trim() }
+    $tok = (Sh "cat '/storage/emulated/0/Android/data/$pkg/files/start.token'") -join ""
+    if ($tok) { return $tok.Trim() }
     return ""
+}
+
+function Ensure-LanguageChosen {
+    # А37: свежая установка показывает экран выбора языка — раньше скрипт падал
+    # на нём, потому что про этот экран не знал. Выбираем язык тапом.
+    $prefs = Sh "run-as $pkg cat shared_prefs/foxhole_settings.xml"
+    if ($prefs -match 'name="lang_chosen" value="true"') { return }
+    Show-App
+    Start-Sleep -Seconds 1
+    Invoke-Acc "clicktext" @{ text = "Русский" } | Out-Null
+    Start-Sleep -Milliseconds 800
+    $prefs = Sh "run-as $pkg cat shared_prefs/foxhole_settings.xml"
+    if ($prefs -match 'name="lang_chosen" value="true"') { return }
+    # Запасной путь: тап по границам пункта из uiautomator dump (acc иногда
+    # не находит текст на нестандартных прошивках).
+    $ui = Join-Path $tmp "lang.xml"
+    Sh "uiautomator dump /sdcard/ui.xml" | Out-Null
+    Invoke-Adb pull /sdcard/ui.xml $ui | Out-Null
+    Assert (Test-Path $ui) "uiautomator dump не снялся"
+    $s = Get-Content -Raw -Encoding UTF8 $ui
+    $m = [regex]::Match($s, 'text="[^"]*(?:Русский|English)[^"]*"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"')
+    Assert ($m.Success) "Экран выбора языка не найден"
+    $x = ([int]$m.Groups[1].Value + [int]$m.Groups[3].Value) / 2
+    $y = ([int]$m.Groups[2].Value + [int]$m.Groups[4].Value) / 2
+    Sh "input tap $x $y" | Out-Null
+    Start-Sleep -Seconds 1
+    $prefs = Sh "run-as $pkg cat shared_prefs/foxhole_settings.xml"
+    Assert ($prefs -match 'name="lang_chosen" value="true"') "Выбор языка не применился"
 }
 
 function Send-ServerCommand([string]$Token, [string]$Command) {
@@ -311,10 +346,11 @@ function Test-PcScript {
     Assert ((Sh "test -f '$path' && echo ok") -match "ok") "start.sh не создан приложением"
     Assert ((Sh "cat '$path'") -match "app_process") "start.sh без app_process"
 
+    # Токен читаем до запуска start.sh: сценарий удаления start.token одноразовый.
+    $token = Get-ServerToken
+    Assert ($token) "Токен сервера не найден (start.token не создан вместе с start.sh)"
     $out = (& $adb -s $Serial shell "sh '$path'" 2>&1 | Out-String)
     Assert (Wait-Server) "Сервер не поднялся командой с ПК: $out"
-    $token = Get-ServerToken
-    Assert ($token) "Токен сервера не найден"
     $line = Send-ServerCommand $token "ping"
     Assert ($line -match "OK pong") "Сервер не ответил на ping: $line"
 
@@ -368,6 +404,7 @@ if (-not $SkipBuild) {
     }
 }
 Ensure-Acc
+Ensure-LanguageChosen
 Ensure-NotificationPermission
 
 Test-PcScript

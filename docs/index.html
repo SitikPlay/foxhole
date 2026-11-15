@@ -183,7 +183,7 @@ pre {
     <div>
       <h1><span data-t="ru" lang="ru">Shell-доступ без root, который ты контролируешь</span><span data-t="en" lang="en">Shell access without root, under your control</span></h1>
       <p class="lead"><span data-t="ru" lang="ru">Foxhole запускает маленький сервер с правами shell и даёт выбранным приложениям выполнять shell-команды. Каждое приложение ты разрешаешь вручную и можешь отозвать в один тап.</span><span data-t="en" lang="en">Foxhole starts a small server with shell privileges and lets selected apps run shell commands. You approve each app by hand and can revoke access with one tap.</span></p>
-      <p class="note"><span data-t="ru" lang="ru">Версия 1.3.0. Работает на Android 8 и выше; спаривание по Wi-Fi и автозапуск — только с Android 11. Проверено не на всех прошивках.</span><span data-t="en" lang="en">Version 1.3.0. Works on Android 8 and up; Wi-Fi pairing and autostart only on Android 11+. Not tested on every firmware.</span></p>
+      <p class="note"><span data-t="ru" lang="ru">Версия 1.3.1 (багфикс). Работает на Android 8 и выше; спаривание по Wi-Fi и автозапуск — только с Android 11. Проверено не на всех прошивках.</span><span data-t="en" lang="en">Version 1.3.1 (bugfix release). Works on Android 8 and up; Wi-Fi pairing and autostart only on Android 11+. Not tested on every firmware.</span></p>
       <div class="actions">
         <a class="btn btn-main" href="https://github.com/SitikPlay/foxhole/releases/latest"><span data-t="ru" lang="ru">Скачать APK</span><span data-t="en" lang="en">Download APK</span></a>
         <a class="btn btn-ghost" href="https://github.com/SitikPlay/foxhole"><span data-t="ru" lang="ru">Исходный код</span><span data-t="en" lang="en">Source code</span></a>
@@ -273,7 +273,20 @@ pre {
 
   <section class="section" id="new">
     <div class="wrap">
-      <h2><span data-t="ru" lang="ru">Что нового в 1.3.0</span><span data-t="en" lang="en">What is new in 1.3.0</span></h2>
+      <h2><span data-t="ru" lang="ru">Что нового в 1.3.1</span><span data-t="en" lang="en">What is new in 1.3.1</span></h2>
+      <div class="feats">
+      <div class="feat guide">
+        <h3 class="guide-title"><span data-t="ru" lang="ru">Исправления (без новых функций)</span><span data-t="en" lang="en">Fixes (no new features)</span></h3>
+        <ul class="checks">
+          <li><span data-t="ru" lang="ru">Плитка и виджет честно видят состояние сервера и сразу обновляют друг друга после переключения.</span><span data-t="en" lang="en">The tile and widget reliably see the server state and update each other immediately after a toggle.</span></li>
+          <li><span data-t="ru" lang="ru">Понятные ошибки спаривания и недоступности сервера на всех языках приложения.</span><span data-t="en" lang="en">Clear pairing and server-unreachable errors in all app languages.</span></li>
+          <li><span data-t="ru" lang="ru">Терминал: высота консоли растёт под объём вывода и сбрасывается при очистке.</span><span data-t="en" lang="en">Terminal: the console grows with the output and resets on clear.</span></li>
+          <li><span data-t="ru" lang="ru">foxhole-adb: честные сообщения об ошибках вместо «%!s(&lt;nil&gt;)», stderr adb в screenshot не теряется.</span><span data-t="en" lang="en">foxhole-adb: honest error messages instead of "%!s(&lt;nil&gt;)", adb stderr in screenshot is kept.</span></li>
+          <li><span data-t="ru" lang="ru">Восстановление после потери ключа Keystore и прерывания запуска — приложение не перестаёт работать.</span><span data-t="en" lang="en">Recovery from a lost Keystore key and interrupted start — the app keeps working.</span></li>
+        </ul>
+      </div>
+      </div>
+      <h2><span data-t="ru" lang="ru">Что появилось в 1.3.0</span><span data-t="en" lang="en">What arrived in 1.3.0</span></h2>
       <div class="feats">
       <div class="feat guide">
         <h3 class="guide-title"><span data-t="ru" lang="ru">Запуск без открытия приложения</span><span data-t="en" lang="en">Start without opening the app</span></h3>
