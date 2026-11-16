@@ -345,7 +345,7 @@
     <string name="t341">设备确认不可用：屏幕锁定未受保护。\n\n请在系统设置中设置 PIN 或生物识别——之后确认才会生效——或在 Foxhole 设置中关闭“需要设备确认”。</string>
     <string name="t342">明白了</string>
     <string name="t343">这是 Foxhole 服务器端口，不是配对端口</string>
-    <string name="t344">输入端口和配对码，用空格分隔，例如：41221 483661</string>
+    <string name="t344">输入6位配对码，例如：483661（或端口和配对码：41221 483661）</string>
     <string name="t345">无线调试已关闭</string>
     <string name="t346">配对失败：%1$s</string>
     <string name="t347">设备拒绝了配对</string>
@@ -353,12 +353,12 @@
     <string name="t349">点按以打开 Foxhole 并启动服务器</string>
     <string name="t350">配对失败</string>
     <string name="t351">Foxhole 配对</string>
-    <string name="t352">打开“使用配对码配对设备”，然后在这里输入端口和配对码</string>
+    <string name="t352">打开“使用配对码配对设备”，然后在这里输入配对码——端口会自动找到</string>
     <string name="t353">不要关闭设置</string>
     <string name="t354">正在配对…</string>
     <string name="t355">配对完成前不要关闭设置</string>
-    <string name="t356">端口和配对码：41221 483661</string>
-    <string name="t357">输入端口和配对码</string>
+    <string name="t356">配对码，例如：483661</string>
+    <string name="t357">输入配对码</string>
     <string name="t358">取消</string>
     <string name="t359">配对</string>
     <string name="t360">输入无线调试的端口和配对码</string>
@@ -383,6 +383,7 @@
     <string name="t381">卸载应用、删除文件等命令将不再显示说明。这是保护性设置——确定要关闭吗？</string>
     <string name="t460">启动已中断</string>
     <string name="t461">Foxhole 服务器不可达（%1$s）</string>
+    <string name="t462">未找到配对端口——请打开配对码窗口后重试</string>
     <string name="t382">危险命令需要批准</string>
     <string name="t383">%1$s 想要执行：%2$s</string>
     <string name="t384">运行</string>

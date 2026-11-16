@@ -38,4 +38,27 @@ class PairInputTest {
         assertTrue(parsePairInputKind("27183 842308", 27183) is PairParseKind.ReservedPort)
         assertTrue(parsePairInputKind("41221 842308", 27183) is PairParseKind.Ok)
     }
+
+    @Test
+    fun parsesCodeOnly() {
+        val parsed = parsePairInputKind("842308", 27183)
+        assertEquals(PairParseKind.CodeOnly("842308"), parsed)
+    }
+
+    @Test
+    fun parsesCodeOnlyWithNoise() {
+        val parsed = parsePairInputKind("код: 842308", 27183)
+        assertEquals(PairParseKind.CodeOnly("842308"), parsed)
+    }
+
+    @Test
+    fun codeOnlyStillDetectsReservedPortInMixedInput() {
+        // Порт-сервер Foxhole попал в строку — это не «только код», а ошибка порта.
+        assertTrue(parsePairInputKind("27183 842308", 27183) is PairParseKind.ReservedPort)
+    }
+
+    @Test
+    fun rejectsPortWithoutCode() {
+        assertTrue(parsePairInputKind("41221", 27183) is PairParseKind.Invalid)
+    }
 }

@@ -60,9 +60,6 @@ class PairService : Service() {
             fail(parsed.message)
             return
         }
-        parsed as PairParse.Ok
-        val port = parsed.port
-        val code = parsed.code
         val wifiEnabled = try {
             android.provider.Settings.Global.getInt(contentResolver, "adb_wifi_enabled", 0) == 1
         } catch (e: Exception) {
@@ -73,27 +70,71 @@ class PairService : Service() {
             return
         }
 
-        val host = AndroidUtils.getHostIpAddress(this)
+        when (parsed) {
+            is PairParse.Ok ->
+                pairAndFinish(
+                    listOf(AndroidUtils.getHostIpAddress(this) to parsed.port),
+                    parsed.code
+                )
+            is PairParse.CodeOnly -> {
+                // Код без порта. ВАЖНО: без mDNS-поиска! На части прошивок
+                // (HyperOS) регистрация mDNS-слушателя убивает активную сессию
+                // спаривания («Pairing failed» через ~20 мс после регистрации).
+                // Поэтому порт ищем только сканированием: окно с кодом держит
+                // TLS-порт открытым, а скан «здоровается» по TLS и сервер
+                // спаривания не ломает.
+                val targets = Discover.scanPairingPorts(
+                    Discover.localIpv4s() + AndroidUtils.getHostIpAddress(this),
+                    excludePorts(),
+                    40_000
+                )
+                if (targets.isEmpty()) {
+                    fail(getString(R.string.t462))
+                    return
+                }
+                pairAndFinish(targets, parsed.code)
+            }
+            else -> {
+                // PairParse.Error уже обработан выше.
+            }
+        }
+    }
+
+    /** Порты, которые заведомо не спаривание: наш сервер и известный порт отладки. */
+    private fun excludePorts(): Set<Int> {
+        val set = mutableSetOf(Settings.port(this))
+        Settings.parseWdsAddress(Settings.wdsAddress(this))?.second?.let { set.add(it) }
+        return set
+    }
+
+    /** Пробует каждый кандидат «хост:порт» по очереди; первый успех — уведомление и выход. */
+    private fun pairAndFinish(targets: List<Pair<String, Int>>, code: String) {
         val adb = FoxholeAdb.get(this)
-        // А15: чистим хвост предыдущей попытки и ставим короткий таймаут,
-        // чтобы спаривание не висело на полуоткрытом соединении.
-        adb.resetConnection()
+        // А15: короткий таймаут — спаривание не должно висеть полминуты
+        // на устаревшем коде или порту.
         adb.setTimeout(15, TimeUnit.SECONDS)
-        val future: Future<Boolean> = pairing.submit(Callable {
-            adb.pair(host, port, code)
-        })
-        val paired = try {
-            future.get(75, TimeUnit.SECONDS)
-        } catch (e: Exception) {
-            future.cancel(true)
-            fail(getString(R.string.t346, friendlyAdbError(this, e)))
-            return
+        var lastError: Exception? = null
+        for ((host, port) in targets) {
+            // Чистим хвост предыдущей попытки, иначе pair() может зависнуть
+            // на полуоткрытом соединении.
+            adb.resetConnection()
+            val future: Future<Boolean> = pairing.submit(Callable {
+                adb.pair(host, port, code)
+            })
+            val paired = try {
+                future.get(75, TimeUnit.SECONDS)
+            } catch (e: Exception) {
+                future.cancel(true)
+                lastError = e
+                false
+            }
+            if (paired) {
+                succeed()
+                return
+            }
         }
-        if (!paired) {
-            fail(getString(R.string.t347))
-            return
-        }
-        succeed()
+        lastError?.let { fail(getString(R.string.t346, friendlyAdbError(this, it))) }
+            ?: fail(getString(R.string.t347))
     }
 
     private fun succeed() {

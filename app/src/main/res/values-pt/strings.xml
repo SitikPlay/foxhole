@@ -345,7 +345,7 @@
     <string name="t341">A confirmação do dispositivo não está disponível: a tela de bloqueio não está protegida.\n\nDefina um PIN ou biometria nas configurações do sistema; depois as confirmações funcionarão; ou desative «Exigir confirmação do dispositivo» nas configurações do Foxhole.</string>
     <string name="t342">Entendi</string>
     <string name="t343">Esta é a porta do servidor do Foxhole, não a de pareamento</string>
-    <string name="t344">Digite a porta e o código separados por um espaço, por exemplo: 41221 483661</string>
+    <string name="t344">Digite o código de 6 dígitos, ex.: 483661 (ou porta e código: 41221 483661)</string>
     <string name="t345">A depuração sem fio está desligada</string>
     <string name="t346">Pareamento falhou: %1$s</string>
     <string name="t347">O dispositivo rejeitou o pareamento</string>
@@ -353,12 +353,12 @@
     <string name="t349">Toque para abrir o Foxhole e iniciar o servidor</string>
     <string name="t350">Pareamento falhou</string>
     <string name="t351">Pareamento do Foxhole</string>
-    <string name="t352">Abra «Parear com código» e depois digite a porta e o código aqui</string>
+    <string name="t352">Abra «Parear com código» e depois digite o código aqui — a porta é detectada automaticamente</string>
     <string name="t353">Não feche as configurações</string>
     <string name="t354">Pareando…</string>
     <string name="t355">Não feche as configurações até terminar o pareamento</string>
-    <string name="t356">Porta e código: 41221 483661</string>
-    <string name="t357">Digitar porta e código</string>
+    <string name="t356">Código de pareamento, ex.: 483661</string>
+    <string name="t357">Digitar código de pareamento</string>
     <string name="t358">Cancelar</string>
     <string name="t359">Pareamento</string>
     <string name="t360">Digitação da porta e do código da depuração sem fio</string>
@@ -383,6 +383,7 @@
     <string name="t381">Comandos como desinstalar apps ou excluir arquivos serão executados sem explicação. Esta é uma configuração de proteção — tem certeza de que quer desativá-la?</string>
     <string name="t460">O início foi interrompido</string>
     <string name="t461">Servidor Foxhole inacessível (%1$s)</string>
+    <string name="t462">Porta de pareamento não encontrada — abra a janela de código e tente novamente</string>
     <string name="t382">O comando perigoso precisa de aprovação</string>
     <string name="t383">%1$s quer executar: %2$s</string>
     <string name="t384">Executar</string>

@@ -345,7 +345,7 @@
     <string name="t341">Device confirmation is unavailable: the screen lock is not protected.\n\nSet a PIN or biometrics in the system settings — after that confirmations will work — or disable \"Require device confirmation\" in Foxhole settings.</string>
     <string name="t342">Got it</string>
     <string name="t343">This is the Foxhole server port, not the pairing port</string>
-    <string name="t344">Enter the port and code separated by a space, for example: 41221 483661</string>
+    <string name="t344">Enter the 6-digit code, e.g. 483661 (or port and code: 41221 483661)</string>
     <string name="t345">Wireless debugging is off</string>
     <string name="t346">Pairing failed: %1$s</string>
     <string name="t347">The device rejected pairing</string>
@@ -353,12 +353,12 @@
     <string name="t349">Tap to open Foxhole and start the server</string>
     <string name="t350">Pairing failed</string>
     <string name="t351">Foxhole pairing</string>
-    <string name="t352">Open \"Pair device with code\", then enter the port and code here</string>
+    <string name="t352">Open \"Pair device with code\", then enter the code here — the port is found automatically</string>
     <string name="t353">Keep the settings open</string>
     <string name="t354">Pairing…</string>
     <string name="t355">Do not close the settings until pairing is done</string>
-    <string name="t356">Port and code: 41221 483661</string>
-    <string name="t357">Enter port and code</string>
+    <string name="t356">Pairing code, e.g. 483661</string>
+    <string name="t357">Enter pairing code</string>
     <string name="t358">Cancel</string>
     <string name="t359">Pairing</string>
     <string name="t360">Entering the wireless debugging port and code</string>
@@ -469,4 +469,5 @@
     <string name="t459">Fallback address cleared</string>
     <string name="t460">Start was interrupted</string>
     <string name="t461">Foxhole server unreachable (%1$s)</string>
+    <string name="t462">Pairing port not found — open the code window and try again</string>
 </resources>

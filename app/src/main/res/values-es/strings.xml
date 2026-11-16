@@ -345,7 +345,7 @@
     <string name="t341">La confirmación del dispositivo no está disponible: la pantalla de bloqueo no está protegida.\n\nEstablece un PIN o biometría en los ajustes del sistema; después las confirmaciones funcionarán; o desactiva «Exigir confirmación del dispositivo» en los ajustes de Foxhole.</string>
     <string name="t342">Entendido</string>
     <string name="t343">Este es el puerto del servidor Foxhole, no el de emparejamiento</string>
-    <string name="t344">Introduce el puerto y el código separados por un espacio, por ejemplo: 41221 483661</string>
+    <string name="t344">Introduce el código de 6 dígitos, por ejemplo: 483661 (o puerto y código: 41221 483661)</string>
     <string name="t345">La depuración inalámbrica está desactivada</string>
     <string name="t346">Emparejamiento fallido: %1$s</string>
     <string name="t347">El dispositivo rechazó el emparejamiento</string>
@@ -353,12 +353,12 @@
     <string name="t349">Pulsa para abrir Foxhole e iniciar el servidor</string>
     <string name="t350">Emparejamiento fallido</string>
     <string name="t351">Emparejamiento de Foxhole</string>
-    <string name="t352">Abre «Vincular con código» y luego introduce el puerto y el código aquí</string>
+    <string name="t352">Abre «Vincular con código» y luego introduce el código aquí — el puerto se detecta solo</string>
     <string name="t353">No cierres los ajustes</string>
     <string name="t354">Emparejando…</string>
     <string name="t355">No cierres los ajustes hasta terminar el emparejamiento</string>
-    <string name="t356">Puerto y código: 41221 483661</string>
-    <string name="t357">Introducir puerto y código</string>
+    <string name="t356">Código de emparejamiento, p. ej.: 483661</string>
+    <string name="t357">Introducir código de emparejamiento</string>
     <string name="t358">Cancelar</string>
     <string name="t359">Emparejamiento</string>
     <string name="t360">Introducción del puerto y código de la depuración inalámbrica</string>
@@ -383,6 +383,7 @@
     <string name="t381">Comandos como desinstalar aplicaciones o borrar archivos se ejecutarán sin explicación. Es un ajuste de protección: ¿seguro que quieres desactivarlo?</string>
     <string name="t460">El inicio fue interrumpido</string>
     <string name="t461">Servidor Foxhole no disponible (%1$s)</string>
+    <string name="t462">Puerto de emparejamiento no encontrado: abre la ventana del código y vuelve a intentarlo</string>
     <string name="t382">El comando peligroso necesita aprobación</string>
     <string name="t383">%1$s quiere ejecutar: %2$s</string>
     <string name="t384">Ejecutar</string>

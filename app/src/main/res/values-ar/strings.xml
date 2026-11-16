@@ -345,7 +345,7 @@
     <string name="t341">تأكيد الجهاز غير متاح: قفل الشاشة غير محمي.\n\nضع رمز PIN أو بصمة في إعدادات النظام — بعدها ستعمل التأكيدات — أو عطّل «طلب تأكيد الجهاز» في إعدادات Foxhole.</string>
     <string name="t342">فهمت</string>
     <string name="t343">هذا منفذ خادم Foxhole وليس منفذ الإقران</string>
-    <string name="t344">أدخل المنفذ والرمز مفصولين بمسافة، مثل: 41221 483661</string>
+    <string name="t344">أدخل رمز الاقتران المكوّن من 6 أرقام، مثل: 483661 (أو المنفذ والرمز: 41221 483661)</string>
     <string name="t345">التصحيح اللاسلكي متوقف</string>
     <string name="t346">فشل الإقران: %1$s</string>
     <string name="t347">رفض الجهاز الإقران</string>
@@ -353,12 +353,12 @@
     <string name="t349">اضغط لفتح Foxhole وبدء الخادم</string>
     <string name="t350">فشل الإقران</string>
     <string name="t351">إقران Foxhole</string>
-    <string name="t352">افتح «إقران جهاز برمز» ثم أدخل المنفذ والرمز هنا</string>
+    <string name="t352">افتح «إقران جهاز برمز» ثم أدخل الرمز هنا — سيُعثر على المنفذ تلقائيًا</string>
     <string name="t353">لا تغلق الإعدادات</string>
     <string name="t354">جارٍ الإقران…</string>
     <string name="t355">لا تغلق الإعدادات حتى ينتهي الإقران</string>
-    <string name="t356">المنفذ والرمز: 41221 483661</string>
-    <string name="t357">إدخال المنفذ والرمز</string>
+    <string name="t356">رمز الاقتران، مثل: 483661</string>
+    <string name="t357">إدخال رمز الاقتران</string>
     <string name="t358">إلغاء</string>
     <string name="t359">الإقران</string>
     <string name="t360">إدخال منفذ ورمز التصحيح اللاسلكي</string>
@@ -383,6 +383,7 @@
     <string name="t381">ستعمل أوامر مثل إزالة التطبيقات أو حذف الملفات دون شرح. هذا إعداد وقائي — هل تريد حقاً تعطيله؟</string>
     <string name="t460">تم مقاطعة بدء التشغيل</string>
     <string name="t461">خادم Foxhole غير متاح (%1$s)</string>
+    <string name="t462">لم يتم العثور على منفذ الاقتران — افتح نافذة رمز الاقتران وحاول مرة أخرى</string>
     <string name="t382">الأمر الخطير يحتاج إلى موافقة</string>
     <string name="t383">%1$s يريد تشغيل: %2$s</string>
     <string name="t384">تشغيل</string>

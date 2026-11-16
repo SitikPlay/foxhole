@@ -1283,45 +1283,81 @@ class MainActivity : AppCompatActivity() {
 
     private fun pairFromFields() {
         val code = pairCodeField.editText?.text?.toString()?.trim().orEmpty()
-        val typedPort = pairPortField.editText?.text?.toString()?.trim()?.toIntOrNull()
+        val portText = pairPortField.editText?.text?.toString()?.trim().orEmpty()
+        val typedPort = portText.toIntOrNull()
         if (code.length != 6) {
             snack(getString(R.string.t079), error = true)
             return
         }
-        if (typedPort == null || typedPort <= 0) {
-            snack(getString(R.string.t080), error = true)
-            return
-        }
-        pairPortError(this, typedPort, Settings.port(this))?.let {
-            snack(it, error = true)
-            return
+        // Порт можно не вводить: приложение найдёт его само сканированием.
+        if (portText.isNotEmpty()) {
+            if (typedPort == null || typedPort <= 0) {
+                snack(getString(R.string.t080), error = true)
+                return
+            }
+            pairPortError(this, typedPort, Settings.port(this))?.let {
+                snack(it, error = true)
+                return
+            }
         }
         bg(getString(R.string.t081), {
             val adb = FoxholeAdb.get(this@MainActivity)
-            // А15: чистим хвост предыдущей попытки, иначе pair() может зависнуть
-            // на полуоткрытом соединении; таймаут короче обычного — спаривание
-            // не должно «висеть» полминуты на устаревшем коде/порте.
-            adb.resetConnection()
+            // А15: таймаут короче обычного — спаривание не должно «висеть»
+            // полминуты на устаревшем коде/порте.
             adb.setTimeout(15, TimeUnit.SECONDS)
-            val service = discoverService(AdbMdns.SERVICE_TYPE_TLS_PAIRING, 4_000)
-            val host = service?.first ?: localIpv4()
-                ?: return@bg "ERR|" + getString(R.string.t082)
-            val paired = try {
-                adb.pair(host, service?.second ?: typedPort, code)
-            } catch (e: Exception) {
-                return@bg "ERR|" + friendlyAdbError(this@MainActivity, e)
+            // ВАЖНО: без mDNS-поиска! На части прошивок (HyperOS) регистрация
+            // mDNS-слушателя убивает активную сессию спаривания. Порт введён —
+            // идём напрямую; не введён — ищем сканированием (окно с кодом
+            // держит TLS-порт открытым, скан «здоровается» по TLS).
+            val candidates: List<Pair<String, Int>> = when {
+                typedPort != null -> {
+                    val host = localIpv4()
+                        ?: return@bg "ERR|" + getString(R.string.t082)
+                    listOf(host to typedPort)
+                }
+                else -> {
+                    // Порт не введён — сканируем свои адреса.
+                    val scanned = Discover.scanPairingPorts(
+                        Discover.localIpv4s(), excludePorts()
+                    )
+                    if (scanned.isEmpty()) return@bg "ERR|" + getString(R.string.t462)
+                    scanned
+                }
+            }
+            var paired = false
+            var usedHost = ""
+            var usedPort = -1
+            var lastError: String? = null
+            for ((host, port) in candidates) {
+                // А15: чистим хвост предыдущей попытки, иначе pair() может
+                // зависнуть на полуоткрытом соединении.
+                adb.resetConnection()
+                paired = try {
+                    adb.pair(host, port, code)
+                } catch (e: Exception) {
+                    lastError = friendlyAdbError(this@MainActivity, e)
+                    false
+                }
+                if (paired) {
+                    usedHost = host
+                    usedPort = port
+                    break
+                }
             }
             if (!paired) {
+                if (lastError != null && candidates.size == 1) {
+                    return@bg "ERR|" + lastError
+                }
                 try {
                     if (adb.connectTls(this@MainActivity, 6_000)) {
                         FoxholeAdb.markPaired(this@MainActivity)
-                        return@bg "OK|" + getString(R.string.t083, host)
+                        return@bg "OK|" + getString(R.string.t083, localIpv4() ?: "")
                     }
                 } catch (e: Exception) {
                 }
                 return@bg "ERR|" + getString(R.string.t084)
             }
-            "OK|" + getString(R.string.t254, host, service?.second ?: typedPort)
+            "OK|" + getString(R.string.t254, usedHost, usedPort)
         }) { res ->
             finishAction(res, onError = { msg ->
                 if (msg.contains("Wi-Fi", ignoreCase = true) ||
@@ -1332,6 +1368,13 @@ class MainActivity : AppCompatActivity() {
             })
             if (res.startsWith("OK")) startServer()
         }
+    }
+
+    /** Порты, которые заведомо не спаривание: наш сервер и известный порт отладки. */
+    private fun excludePorts(): Set<Int> {
+        val set = mutableSetOf(Settings.port(this))
+        Settings.parseWdsAddress(Settings.wdsAddress(this))?.second?.let { set.add(it) }
+        return set
     }
 
     private fun startServer() {
