@@ -141,6 +141,12 @@ class BridgeProvider : ContentProvider() {
     ): Bundle? {
         DangerApprovals.prune(ctx)
         val hash = DangerApprovals.hashCmd(uid, cmd)
+        // Атомарное «проверить-и-съесть» (см. takeApproved): без него двойное
+        // исполнение при параллельных одинаковых запросах.
+        if (DangerApprovals.takeApproved(ctx, uid, hash)) {
+            AccessStore.log(ctx, "$pkg ПОДТВЕРЖДЕНО ПОЛЬЗОВАТЕЛЕМ: ${SecretMask.mask(cmd)}")
+            return null
+        }
         val resolution = DangerApprovals.resolve(
             DangerApprovals.find(ctx, uid, hash), uid, hash, System.currentTimeMillis()
         )

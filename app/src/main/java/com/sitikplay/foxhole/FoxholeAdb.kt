@@ -91,9 +91,15 @@ class FoxholeAdb private constructor(ctx: Context) : AbsAdbConnectionManager() {
             }
 
         fun forget(ctx: Context) {
-            synchronized(this) {
+            // Закрываем соединение старого инстанса: просто обнулить — оставить
+            // полуоткрытый TLS-сокет жить до GC (тот же класс проблемы, что А15).
+            val old = synchronized(this) {
+                val prev = instance
                 instance = null
-
+                prev
+            }
+            runCatching { old?.disconnect() }
+            synchronized(this) {
                 SecretVault.removeSecure(ctx, "adb_key", "adb_cert", "adb_paired")
             }
         }

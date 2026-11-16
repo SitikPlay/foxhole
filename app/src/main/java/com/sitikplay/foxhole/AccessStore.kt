@@ -43,9 +43,13 @@ object AccessStore {
             try {
                 AclLevel.valueOf(parts[2])
             } catch (e: Exception) {
-                AclLevel.FULL
+                // Fail-closed: битый уровень в записи — не FULL (полный доступ),
+                // а отбрасывание записи. Раньше неизвестная строка давала FULL.
+                return null
             }
         } else {
+            // Нет поля уровня в записи (старый формат до 1.3.0) — FULL как
+            // раньше: для исторических записей права уже выданы.
             AclLevel.FULL
         }
         val sig = if (parts.size >= 4) parts[3].takeIf { it.isNotBlank() } else null

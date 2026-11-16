@@ -99,6 +99,25 @@ object DangerApprovals {
         save(ctx, all(ctx).filterNot { it.uid == uid && it.cmdHash == cmdHash })
     }
 
+    // Атомарное «проверить-и-съесть» одобренного подтверждения. Раньше два
+    // параллельных одинаковых запроса оба успевали увидеть APPROVED до
+    // consume() и выполнялись дважды. С учётом TTL — устаревшее одобрение
+    // не съедается (resolve() перевыставит запрос как NEW).
+    @Synchronized
+    fun takeApproved(
+        ctx: Context,
+        uid: Int,
+        cmdHash: String,
+        nowMs: Long = System.currentTimeMillis()
+    ): Boolean {
+        val rec = all(ctx).firstOrNull { it.uid == uid && it.cmdHash == cmdHash }
+        if (rec == null || rec.status != Status.APPROVED || nowMs - rec.createdAtMs > TTL_MS) {
+            return false
+        }
+        save(ctx, all(ctx) - rec)
+        return true
+    }
+
     @Synchronized
     fun prune(ctx: Context, nowMs: Long = System.currentTimeMillis()): Int {
         val cur = all(ctx)

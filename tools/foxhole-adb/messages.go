@@ -215,10 +215,6 @@ Hints:
 		ru: "Недопустимый режим перезагрузки: %s (пусто, recovery, bootloader, fastboot, sideload).",
 		en: "Invalid reboot mode: %s (none, recovery, bootloader, fastboot, sideload).",
 	}
-	messages["rebootAsk"] = ruEn{
-		ru: "Перезагрузить устройство %s? [y/N] ",
-		en: "Reboot the device %s? [y/N] ",
-	}
 	messages["rebootCanceled"] = ruEn{ru: "Отменено.", en: "Cancelled."}
 	messages["rebootNoArgs"] = ruEn{
 		ru: "Формат: foxhole-adb reboot [режим] --yes. Без --yes нужно подтвердить словом y в stdin.",

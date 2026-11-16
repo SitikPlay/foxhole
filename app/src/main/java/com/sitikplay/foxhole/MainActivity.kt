@@ -185,6 +185,11 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
+        // start.token не должен лежать на диске вечно: если стартовый скрипт
+        // так и не выполнился, валидный токен оставался во внешнем хранилище.
+        // В фоне (внутри ping-проверка): сервер работает — трогать нечего.
+        Thread { ServerScript.pruneStaleToken(this) }.start()
+
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
@@ -1414,7 +1419,10 @@ class MainActivity : AppCompatActivity() {
             }
             repeat(6) {
                 if (ServerClient.request(this@MainActivity, "ping").startsWith("OK pong")) {
-                    return@bg "OK|" + getString(R.string.t092)
+                    // Машиный маркер вместо сверки локализованной строки: префикс
+                    // t092 не совпадал с t161 в 5 из 7 локалях, и после успешного
+                    // старта не обновлялись статус и плитка (en/es/pt/ar/hi).
+                    return@bg "OK|started|" + getString(R.string.t092)
                 }
                 Thread.sleep(800)
             }
@@ -2179,7 +2187,12 @@ class MainActivity : AppCompatActivity() {
     private fun confirmContinueNoBackup(pkg: String): Boolean {
         val latch = java.util.concurrent.CountDownLatch(1)
         var proceed = false
+        if (isFinishing || isDestroyed) return false
         runOnUiThread {
+            if (isFinishing || isDestroyed) {
+                latch.countDown()
+                return@runOnUiThread
+            }
             MaterialAlertDialogBuilder(this)
                 .setTitle(getString(R.string.t132))
                 .setMessage(
@@ -2192,7 +2205,9 @@ class MainActivity : AppCompatActivity() {
                 }
                 .secureShow()
         }
-        latch.await()
+        // Без таймаута уничтожение активити (поворот экрана) оставляло
+        // фоновую нить удаления висеть вечно: диалог исчезал без колбэка.
+        latch.await(120, java.util.concurrent.TimeUnit.SECONDS)
         return proceed
     }
 
@@ -2219,25 +2234,35 @@ class MainActivity : AppCompatActivity() {
 
     private fun renderDeletedRows() {
         if (!::deletedList.isInitialized) return
-        deletedList.removeAllViews()
-        val records = DeletedStore.all(this)
-        if (records.isEmpty()) {
-            deletedList.addView(
-                label(getString(R.string.t137), 13f)
-                    .apply { setTextColor(hintColor); setPadding(0, 6.dp, 0, 6.dp) }
-            )
-            return
-        }
-        val now = System.currentTimeMillis()
-        records.forEachIndexed { i, r ->
-            if (i > 0) deletedList.addView(divider())
-            deletedList.addView(deletedRow(r, now))
-        }
-        deletedList.addView(space(8))
-        val size = DeletedStore.bytes(this)
-        deletedList.addView(
-            label(getString(R.string.t275, formatBytes(size)), 12f).apply { setTextColor(hintColor) }
-        )
+        // DeletedStore.all/bytes обходят дерево каталогов APK — не для
+        // main-потока: считаем в фоне, раскладываем view на UI-потоке.
+        Thread {
+            val records = DeletedStore.all(this)
+            val size = DeletedStore.bytes(this)
+            runOnUiThread {
+                if (!::deletedList.isInitialized || isFinishing || isDestroyed) {
+                    return@runOnUiThread
+                }
+                deletedList.removeAllViews()
+                if (records.isEmpty()) {
+                    deletedList.addView(
+                        label(getString(R.string.t137), 13f)
+                            .apply { setTextColor(hintColor); setPadding(0, 6.dp, 0, 6.dp) }
+                    )
+                } else {
+                    val now = System.currentTimeMillis()
+                    records.forEachIndexed { i, r ->
+                        if (i > 0) deletedList.addView(divider())
+                        deletedList.addView(deletedRow(r, now))
+                    }
+                    deletedList.addView(space(8))
+                }
+                deletedList.addView(
+                    label(getString(R.string.t275, formatBytes(size)), 12f)
+                        .apply { setTextColor(hintColor) }
+                )
+            }
+        }.start()
     }
 
     private fun deletedRow(r: DeletedStore.Record, now: Long): View {
@@ -2445,7 +2470,7 @@ class MainActivity : AppCompatActivity() {
                             R.string.t291,
                             df.format(java.util.Date(r.removedAt)),
                             r.apkDir ?: "-",
-                            r.restorePossible
+                            r.restorePossible.toString()
                         )
                 )
             }
@@ -2543,13 +2568,17 @@ class MainActivity : AppCompatActivity() {
     private fun finishAction(res: String, onError: (String) -> Unit = {}) {
         val ok = res.startsWith("OK|")
         val msg = res.substringAfter("|")
-        snack(msg, error = !ok)
-        if (ok && msg.startsWith(getString(R.string.t161))) {
+        // «Сервер запущен» определяется машиным маркером, не локализованным
+        // префиксом: в 5 из 7 локалях сверка по строке молча не срабатывала.
+        val started = ok && msg.startsWith("started|")
+        val shown = if (started) msg.substringAfter("|") else msg
+        snack(shown, error = !ok)
+        if (started) {
             setStatus(true)
             // В1: сервер запущен из приложения — плитка обновляется сразу.
             ServerTileService.requestRefresh(this)
         }
-        if (!ok) onError(msg)
+        if (!ok) onError(shown)
     }
 
     private fun copyToClipboard(text: String) {
@@ -3017,17 +3046,27 @@ class MainActivity : AppCompatActivity() {
             val pkgs = LinkedHashSet<String>()
             try {
                 val text = contentResolver.openInputStream(uri)?.use { input ->
-                    input.readBytes().toString(Charsets.UTF_8)
+                    // Читаем не дальше лимита: readBytes() до проверки тянет
+                    // весь файл в память — OOM на крупном файле через SAF.
+                    val buf = java.io.ByteArrayOutputStream()
+                    val chunk = ByteArray(8192)
+                    var total = 0
+                    while (true) {
+                        val n = input.read(chunk)
+                        if (n <= 0) break
+                        total += n
+                        if (total > 64 * 1024) return@use null
+                        buf.write(chunk, 0, n)
+                    }
+                    buf.toString("UTF-8")
                 } ?: ""
 
-                if (text.length <= 64 * 1024) {
-                    text.lineSequence().forEach { raw ->
-                        val s = raw.trim()
-                        if (s.isEmpty() || s.startsWith("#") || s.startsWith("foxhole")) {
-                            return@forEach
-                        }
-                        if (SET_PKG.matches(s)) pkgs.add(s)
+                text.lineSequence().forEach { raw ->
+                    val s = raw.trim()
+                    if (s.isEmpty() || s.startsWith("#") || s.startsWith("foxhole")) {
+                        return@forEach
                     }
+                    if (SET_PKG.matches(s)) pkgs.add(s)
                 }
             } catch (e: Exception) {
             }
@@ -3115,7 +3154,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showDeviceReport() {
-        val text = DeviceReport.report(this)
+        // А1-класс бага: ping внутри DeviceReport на main-потоке рвался
+        // NetworkOnMainThreadException и молча превращался в «сервер не
+        // отвечает» даже при работающем сервере. Строим отчёт в фоне.
+        Thread {
+            val text = DeviceReport.report(this)
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                showReportDialog(text)
+            }
+        }.start()
+    }
+
+    private fun showReportDialog(text: String) {
         val body = TextView(this).apply {
             appTypeface(400, code = true)
             textSize = 12f

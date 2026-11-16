@@ -15,7 +15,7 @@ func main() {
 }
 
 func run(argv []string) int {
-	lang = detectLang(argv)
+	lang = detectLang()
 	rest, err := extractGlobals(argv)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, msg("errGlobal")+":", err)

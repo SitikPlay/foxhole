@@ -134,6 +134,14 @@ public class Acc extends UiAutomatorTestCase {
             root = a.getRootInActiveWindow();
             System.out.println("retry root=" + (root != null));
         }
+        // Ретрай может так и не вернуть root (экран выключен, окно в переходе).
+        // Ветки dump/scroll/hastext/pairinfo null-безопасны, а clicktext,
+        // settextid и clickid дёргали методы прямо на root — падали с NPE
+        // вместо диагностики. Выходим честно, с понятным ответом.
+        if (root == null) {
+            System.out.println("noRoot");
+            return;
+        }
         if ("dump".equals(action)) {
             dump(root, 0);
         } else if ("scroll".equals(action) || "scrollback".equals(action)) {

@@ -39,7 +39,16 @@ class PairService : Service() {
             ACTION_PAIR -> {
                 val input = intent.getStringExtra(EXTRA_INPUT).orEmpty()
                 startInForeground(progressNotification())
-                worker.execute { pairFromInput(input) }
+                worker.execute {
+                    // Catch-all обязателен: исключение из parsePairInput/scan
+                    // уходило в uncaught handler и падало всем процессом, пока
+                    // висит foreground-сервис с уведомлением «выполняется».
+                    try {
+                        pairFromInput(input)
+                    } catch (e: Throwable) {
+                        fail(friendlyAdbError(this, e))
+                    }
+                }
             }
             else -> startInForeground(readyNotification())
         }

@@ -50,7 +50,7 @@ func setLang(v string) {
 	}
 }
 
-func detectLang(argv []string) string {
+func detectLang() string {
 	if strings.HasPrefix(strings.ToLower(os.Getenv("FOXHOLE_ADB_LANG")), "en") {
 		return "en"
 	}

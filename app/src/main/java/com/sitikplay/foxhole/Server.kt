@@ -25,7 +25,6 @@ object Server {
     private var windowFails = 0
     private val FAIL_WINDOW_MS = 60_000L
     private val CONSEC_FAIL_DELAY_MS = 2_000L
-    private val BURST_FAIL_DELAY_MS = 5_000L
     private val BURST_THRESHOLD = 20
 
     private val PKG = Regex("^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z0-9_]+)*$")
@@ -59,7 +58,10 @@ object Server {
         windowFails++
         consecutiveFails++
         return when {
-            windowFails >= BURST_THRESHOLD -> BURST_FAIL_DELAY_MS
+            // Бёрст неверных токенов: спать на воркере нельзя — все 8 воркеров
+            // уйдут в sleep, и легитимные клиенты (connect timeout 2 с) получат
+            // отказ. Защита здесь — мгновенный отказ без паузы.
+            windowFails >= BURST_THRESHOLD -> 0L
             consecutiveFails >= 2 -> CONSEC_FAIL_DELAY_MS
             else -> 0L
         }

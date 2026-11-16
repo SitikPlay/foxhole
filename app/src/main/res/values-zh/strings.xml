@@ -79,7 +79,6 @@
     <string name="t074">服务器无响应</string>
     <string name="t075">停止服务器</string>
     <string name="t076">服务器已停止。下次重启前自动启动不会再开启它</string>
-    <string name="t077">服务器不可用</string>
     <string name="t078">服务器已经无响应——按已停止处理</string>
     <string name="t079">输入“使用配对码配对设备”窗口里的 6 位配对码</string>
     <string name="t080">输入同一窗口里的配对端口</string>

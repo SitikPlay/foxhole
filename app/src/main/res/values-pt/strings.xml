@@ -79,7 +79,6 @@
     <string name="t074">O servidor não responde</string>
     <string name="t075">parada do servidor</string>
     <string name="t076">Servidor parado. Até a próxima reinicialização o início automático não o ativará</string>
-    <string name="t077">servidor indisponível</string>
     <string name="t078">O servidor já não responde: considero-o parado</string>
     <string name="t079">Digite o código de 6 dígitos da janela «Parear com código»</string>
     <string name="t080">Digite a porta de pareamento da mesma janela</string>

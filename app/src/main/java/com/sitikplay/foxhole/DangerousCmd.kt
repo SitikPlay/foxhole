@@ -19,7 +19,10 @@ object DangerousCmd {
 
     data class Danger(val kind: DangerKind, val match: String)
 
-    private val AT_CMD = "(?i)(?:^|[;|&\"'\r\n])[;|&\"'\\s]*"
+    // Граница команды: начало строки и символы, после которых начинается
+    // новая команда. Включаем $, ` и ( — иначе `sh -c "echo $(pm uninstall …)"`
+    // исполняет вложенную команду реально, а подтверждение не запрашивалось.
+    private val AT_CMD = """(?i)(?:^|[;|&"'\r\n`$(])[;|&"'`\s$(]*"""
 
     private val RULES: List<Pair<DangerKind, Regex>> = listOf(
 
@@ -32,6 +35,9 @@ object DangerousCmd {
 
         DangerKind.FILE_DESTROY to Regex(AT_CMD + "rm\\s+-\\w*[rf]\\w*"),
         DangerKind.FILE_DESTROY to Regex(AT_CMD + "rm\\s+\\S+\\s+-\\w*[rf]\\w*\\s*$"),
+        // Long-опции toybox rm: `rm --recursive /path` раньше проходил без подтверждения.
+        DangerKind.FILE_DESTROY to Regex(AT_CMD + "rm\\s+--(recursive|force|interactive)\\b"),
+        DangerKind.FILE_DESTROY to Regex(AT_CMD + "rm\\s+\\S+\\s+--(recursive|force|interactive)\\b"),
         DangerKind.FILE_DESTROY to Regex(AT_CMD + "dd\\b[^;|&\r\n]*\\bof\\s*="),
         DangerKind.FILE_DESTROY to Regex(AT_CMD + "mk(fs|e2fs)(\\.\\w+)?\\b"),
 
@@ -51,7 +57,8 @@ object DangerousCmd {
     fun analyze(cmd: String): Danger? {
         for ((kind, regex) in RULES) {
             val m = regex.find(cmd) ?: continue
-            val frag = m.value.trim(';', '|', '&', '"', '\'', ' ', '\t', '\r', '\n')
+            // Граница команды теперь включает $/`/( — учитываем в обрезке фрагмента.
+            val frag = m.value.trim(';', '|', '&', '"', '\'', ' ', '\t', '\r', '\n', '$', '`', '(')
             return Danger(kind, frag)
         }
         return null

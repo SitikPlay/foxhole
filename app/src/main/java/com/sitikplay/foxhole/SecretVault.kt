@@ -19,6 +19,11 @@ object SecretVault {
     private fun securePrefs(ctx: Context) =
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
+    // Синхронизация: два потока при первом обращении оба не найдут ключ и оба
+    // вызовут generateKey() с одним alias — вторая генерация молча перезапишет
+    // первую, blob'ы зашифрованные первым ключом станут нечитаемыми
+    // (повторное спаривание). Генерируем строго один раз.
+    @Synchronized
     private fun masterKey(): SecretKey {
         val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
         try {

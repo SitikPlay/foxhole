@@ -115,6 +115,10 @@ func splitDaemonNoise(lines []string) ([]string, []string) {
 		case strings.Contains(l, "daemon started successfully"):
 			noise = append(noise, msg("daemonStarted"))
 		case strings.HasPrefix(l, "*"):
+			// Нераспознанные daemon-строки (например, "* failed to start daemon *")
+			// нельзя молча выбрасывать: без них `devices` напечатает пустой
+			// список без объяснения. Держим их в noise, а не в rest.
+			noise = append(noise, l)
 		default:
 			rest = append(rest, l)
 		}
@@ -510,11 +514,17 @@ func cmdSideload(ab string, args []string) int {
 		fmt.Fprintln(os.Stderr, msg("sideloadBad"))
 		return 2
 	}
-	if st, err := os.Stat(args[0]); err != nil || st.IsDir() {
-		fmt.Fprintf(os.Stderr, msg("installNoFile")+"\n", args[0])
+	// Единая политика: sideload перепрошивает recovery через zip — как и все
+	// деструктивные команды (reboot, backup, setprop), под подтверждением.
+	rest, ok := guardYes("sideload", args)
+	if !ok {
+		return 0
+	}
+	if st, err := os.Stat(rest[0]); err != nil || st.IsDir() {
+		fmt.Fprintf(os.Stderr, msg("installNoFile")+"\n", rest[0])
 		return 2
 	}
-	return runInteractive(ab, []string{"sideload", args[0]})
+	return runInteractive(ab, []string{"sideload", rest[0]})
 }
 
 func cmdInstallMultiple(ab string, args []string) int {

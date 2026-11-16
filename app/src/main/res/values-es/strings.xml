@@ -79,7 +79,6 @@
     <string name="t074">El servidor no responde</string>
     <string name="t075">parada del servidor</string>
     <string name="t076">Servidor detenido. Hasta el próximo reinicio el autoarranque no lo activará</string>
-    <string name="t077">servidor no disponible</string>
     <string name="t078">El servidor ya no responde: lo considero detenido</string>
     <string name="t079">Introduce el código de 6 dígitos de la ventana «Vincular con código»</string>
     <string name="t080">Introduce el puerto de emparejamiento de la misma ventana</string>

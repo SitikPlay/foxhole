@@ -78,7 +78,13 @@ object RemoteStart {
             return "ERR|" + ctx.getString(R.string.t331)
         }
         if (turnedOn) {
-            Thread.sleep(WDS_BOOT_MS)
+            try {
+                Thread.sleep(WDS_BOOT_MS)
+            } catch (e: InterruptedException) {
+                // А4: как и остальные sleep здесь — прерывание не должно
+                // убивать поток с исключением.
+                throw InterruptedException(ctx.getString(R.string.t460))
+            }
         }
         val result = try {
             runBoot(ctx)

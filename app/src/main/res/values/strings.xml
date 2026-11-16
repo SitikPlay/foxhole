@@ -79,7 +79,6 @@
     <string name="t074">Server does not respond</string>
     <string name="t075">server stop</string>
     <string name="t076">Server stopped. Until the next reboot autostart will not turn it on</string>
-    <string name="t077">server unavailable</string>
     <string name="t078">The server is already not responding — treating it as stopped</string>
     <string name="t079">Enter the 6-digit code from the \"Pair device with code\" window</string>
     <string name="t080">Enter the pairing port from the same window</string>

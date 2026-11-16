@@ -150,6 +150,23 @@ class DangerousCmdTest {
     }
 
     @Test
+    fun commandSubstitutionDetected() {
+        // $(), бэктики и подскобки — это тоже граница команды: без этого
+        // вложенная опасная команда исполнялась без подтверждения.
+        assertEquals(DangerousCmd.DangerKind.UNINSTALL, kind("echo $(pm uninstall com.x)"))
+        assertEquals(DangerousCmd.DangerKind.UNINSTALL, kind("echo `pm uninstall com.x`"))
+        assertEquals(DangerousCmd.DangerKind.REBOOT, kind("echo $(reboot)"))
+        assertEquals(DangerousCmd.DangerKind.FILE_DESTROY, kind("sh -c 'echo $(rm -rf /sdcard/x)'"))
+    }
+
+    @Test
+    fun rmLongOptionsDetected() {
+        assertEquals(DangerousCmd.DangerKind.FILE_DESTROY, kind("rm --recursive /sdcard/x"))
+        assertEquals(DangerousCmd.DangerKind.FILE_DESTROY, kind("rm --force /sdcard/x"))
+        assertEquals(DangerousCmd.DangerKind.FILE_DESTROY, kind("rm /sdcard/x --recursive"))
+    }
+
+    @Test
     fun quotedAndMultilineDetected() {
         assertEquals(
             DangerousCmd.DangerKind.FILE_DESTROY,

@@ -1,5 +1,6 @@
 package com.sitikplay.foxhole
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -135,7 +136,9 @@ class ServerTileService : TileService() {
             )
             startActivityAndCollapse(pi)
         } else {
-            @Suppress("DEPRECATION")
+            // API 26–33: Intent-вариант работает; на 34+ ветка не выполняется
+            // (там только PendingIntent-вариант, иначе UnsupportedOperationException).
+            @SuppressLint("StartActivityAndCollapseDeprecated")
             startActivityAndCollapse(intent)
         }
     }
