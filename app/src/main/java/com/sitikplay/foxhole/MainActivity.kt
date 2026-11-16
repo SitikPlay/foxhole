@@ -1255,7 +1255,8 @@ class MainActivity : AppCompatActivity() {
             if (ok) {
                 setStatus(false)
                 Settings.setStoppedBootCount(this, currentBootCount())
-                ServerWidgetProvider.refreshAllWidgets(this)
+                // В1: сервер остановлен из приложения — плитка обновляется сразу.
+                ServerTileService.requestRefresh(this)
                 snack(
                     if (Settings.bootStart(this)) {
                         getString(R.string.t076)
@@ -2545,8 +2546,8 @@ class MainActivity : AppCompatActivity() {
         snack(msg, error = !ok)
         if (ok && msg.startsWith(getString(R.string.t161))) {
             setStatus(true)
-            // В1: сервер запущен из приложения — виджет обновляем сразу.
-            ServerWidgetProvider.refreshAllWidgets(this)
+            // В1: сервер запущен из приложения — плитка обновляется сразу.
+            ServerTileService.requestRefresh(this)
         }
         if (!ok) onError(msg)
     }

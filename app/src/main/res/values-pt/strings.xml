@@ -396,11 +396,6 @@
     <string name="t391">Iniciando…</string>
     <string name="t392">Servidor Foxhole iniciado</string>
     <string name="t393">O servidor Foxhole não foi iniciado</string>
-    <string name="t394">Em execução</string>
-    <string name="t395">Parado</string>
-    <string name="t396">Parar</string>
-    <string name="t397">Iniciar</string>
-    <string name="t398">Estado do servidor com iniciar e parar</string>
     <string name="t399">Perfis de comandos</string>
     <string name="t400">Modelos salvos de um toque: preencha os valores e o Foxhole envia o comando montado ao servidor.</string>
     <string name="t401">Novo perfil</string>

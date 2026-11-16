@@ -1,6 +1,7 @@
 package com.sitikplay.foxhole
 
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Handler
@@ -21,6 +22,19 @@ class ServerTileService : TileService() {
     }
 
     override fun onTileRemoved() = Unit
+
+    companion object {
+        // В1: публичная точка обновления плитки — приложение вызывает её после
+        // смены состояния сервера, чтобы плитка не висела со старым статусом
+        // до следующего открытия шторки (requestListeningState приводит к
+        // onStartListening и тамошний refreshStatus).
+        fun requestRefresh(context: Context) {
+            TileService.requestListeningState(
+                context,
+                android.content.ComponentName(context, ServerTileService::class.java)
+            )
+        }
+    }
 
     private fun refreshStatus() {
         Thread {
@@ -65,9 +79,6 @@ class ServerTileService : TileService() {
             applyState(false)
             Thread {
                 ServerClient.request(this, "stop")
-                // В1: состояние сервера сменилось — виджет должен узнать об этом
-                // сразу, а не при следующем плановом обновлении.
-                ServerWidgetProvider.refreshAllWidgets(this)
             }.start()
             return
         }
@@ -87,8 +98,6 @@ class ServerTileService : TileService() {
                     this, if (res.startsWith("OK")) "плитка: сервер запущен" else "плитка: $res"
                 )
                 handler.post { applyState(res.startsWith("OK")) }
-                // В1: обновляем виджет и после запуска.
-                ServerWidgetProvider.refreshAllWidgets(this)
             }.start()
             return
         }
