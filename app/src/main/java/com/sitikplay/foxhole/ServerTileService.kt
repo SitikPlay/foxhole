@@ -39,16 +39,13 @@ class ServerTileService : TileService() {
     }
 
     private fun refreshStatus() {
-        Thread {
-            val online = ServerClient.request(this, "ping").startsWith("OK pong")
-            handler.post { applyState(online) }
-        }.start()
+        pingAsync { online -> applyState(online) }
     }
 
     // Плитка живёт в SystemUI и не знает о пер-апп локалях приложения: её
     // манифестная метка и getString() идут по системной локали телефона.
     // Строим контекст с языком, выбранным в приложении, и сами проставляем
-    // label/subtitle/contentDescription (API 29+, см. guard в applyState).
+    // label/subtitle/contentDescription (API 29+, см. guard в applyTexts).
     private fun localizedString(resId: Int): String {
         val loc = AppCompatDelegate.getApplicationLocales()[0] ?: return getString(resId)
         val conf = Configuration(resources.configuration)
@@ -56,14 +53,18 @@ class ServerTileService : TileService() {
         return createConfigurationContext(conf).getString(resId)
     }
 
+    private fun applyTexts(tile: Tile, subtitleRes: Int) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            tile.label = localizedString(R.string.t388)
+            tile.subtitle = localizedString(subtitleRes)
+            tile.contentDescription = tile.label
+        }
+    }
+
     private fun applyState(online: Boolean) {
         val tile = qsTile ?: return
         tile.state = if (online) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.label = localizedString(R.string.t388)
-            tile.subtitle = localizedString(if (online) R.string.t389 else R.string.t390)
-            tile.contentDescription = tile.label
-        }
+        applyTexts(tile, if (online) R.string.t389 else R.string.t390)
         tile.updateTile()
     }
 
@@ -71,11 +72,7 @@ class ServerTileService : TileService() {
         val tile = qsTile ?: return
 
         tile.state = Tile.STATE_INACTIVE
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.label = localizedString(R.string.t388)
-            tile.subtitle = localizedString(R.string.t391)
-            tile.contentDescription = tile.label
-        }
+        applyTexts(tile, R.string.t391)
         tile.updateTile()
     }
 
@@ -84,9 +81,15 @@ class ServerTileService : TileService() {
         // потоке — Android рвал его с NetworkOnMainThreadException, исключение
         // глоталось в ServerClient, и плитка всегда считала сервер выключенным.
         // Проверяем статус в фоне и уже оттуда решаем, что делать.
+        pingAsync { online -> actOnServerState(online) }
+    }
+
+    // А1: ping только в фоновом потоке — NetworkOnMainThreadException здесь
+    // убивала всю логику плитки; результат доставляется на главный поток.
+    private fun pingAsync(onResult: (Boolean) -> Unit) {
         Thread {
             val online = ServerClient.request(this, "ping").startsWith("OK pong")
-            handler.post { actOnServerState(online) }
+            handler.post { onResult(online) }
         }.start()
     }
 

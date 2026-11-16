@@ -1,0 +1,8 @@
+Bugfix release, no new features or permissions.
+Pair with just a code: the port is optional, the app finds it itself.
+The tile sees the real server state, updates immediately and follows the app language.
+The home-screen widget is removed — the tile and the app remain.
+Clear pairing and server-unreachable errors in all app languages.
+Recovery from a lost Keystore key and an interrupted start.
+Terminal: console height grows with output and resets on clear.
+foxhole-adb: honest error messages, adb stderr in screenshot is kept.
