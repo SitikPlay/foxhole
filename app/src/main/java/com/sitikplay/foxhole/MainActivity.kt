@@ -189,6 +189,9 @@ class MainActivity : AppCompatActivity() {
         // так и не выполнился, валидный токен оставался во внешнем хранилище.
         // В фоне (внутри ping-проверка): сервер работает — трогать нечего.
         Thread { ServerScript.pruneStaleToken(this) }.start()
+        // Разовая миграция истории терминала: старые записи с секретами
+        // хранились открытым текстом — перезаписываем маскированными.
+        Thread { TerminalHistory.migrateToMasked(this) }.start()
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL

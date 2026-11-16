@@ -12,8 +12,12 @@ object TerminalHistory {
 
     fun record(ctx: Context, cmd: String) {
         if (!Settings.terminalHistory(ctx)) return
-        val c = cmd.trim()
-        if (c.isEmpty() || c.contains('\n')) return
+        val raw = cmd.trim()
+        if (raw.isEmpty() || raw.contains('\n')) return
+        // В prefs кладём маскированную команду: открытый пароль/токен не должен
+        // лежать в хранилище. Повторный запуск из истории требует вписать
+        // секрет заново — осознанный компромисс в пользу безопасности.
+        val c = SecretMask.mask(raw)
         val cur = all(ctx).toMutableList()
 
         cur.removeAll { it == c }
@@ -28,6 +32,16 @@ object TerminalHistory {
             ?.split("\n")
             ?.filter { it.isNotBlank() }
             ?: emptyList()
+
+    // Миграция старых записей: раньше команды с секретами хранились открытым
+    // текстом (маскирование было только при показе). Переписываем всё
+    // маскированными строками, чтобы секреты не оставались в prefs.
+    @Synchronized
+    fun migrateToMasked(ctx: Context) {
+        val items = all(ctx)
+        if (items.none { SecretMask.mask(it) != it }) return
+        save(ctx, items.map { SecretMask.mask(it) })
+    }
 
     fun clear(ctx: Context) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY).apply()
