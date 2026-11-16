@@ -75,7 +75,10 @@ class PairService : Service() {
 
         val host = AndroidUtils.getHostIpAddress(this)
         val adb = FoxholeAdb.get(this)
-        adb.setTimeout(30, TimeUnit.SECONDS)
+        // А15: чистим хвост предыдущей попытки и ставим короткий таймаут,
+        // чтобы спаривание не висело на полуоткрытом соединении.
+        adb.resetConnection()
+        adb.setTimeout(15, TimeUnit.SECONDS)
         val future: Future<Boolean> = pairing.submit(Callable {
             adb.pair(host, port, code)
         })

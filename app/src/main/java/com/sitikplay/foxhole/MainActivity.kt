@@ -1298,7 +1298,11 @@ class MainActivity : AppCompatActivity() {
         }
         bg(getString(R.string.t081), {
             val adb = FoxholeAdb.get(this@MainActivity)
-            adb.setTimeout(30, TimeUnit.SECONDS)
+            // А15: чистим хвост предыдущей попытки, иначе pair() может зависнуть
+            // на полуоткрытом соединении; таймаут короче обычного — спаривание
+            // не должно «висеть» полминуты на устаревшем коде/порте.
+            adb.resetConnection()
+            adb.setTimeout(15, TimeUnit.SECONDS)
             val service = discoverService(AdbMdns.SERVICE_TYPE_TLS_PAIRING, 4_000)
             val host = service?.first ?: localIpv4()
                 ?: return@bg "ERR|" + getString(R.string.t082)

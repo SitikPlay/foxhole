@@ -70,6 +70,17 @@ class FoxholeAdb private constructor(ctx: Context) : AbsAdbConnectionManager() {
 
     override fun getDeviceName(): String = "Foxhole"
 
+    /**
+     * А15: после неудачной попытки спаривания/подключения клиент мог остаться
+     * с полуоткрытым TLS-соединением, и следующая попытка pair() зависала на нём
+     * до полного таймаута. Сбрасываем состояние перед каждой попыткой спаривания.
+     */
+    fun resetConnection() {
+        if (isConnected()) {
+            runCatching { disconnect() }
+        }
+    }
+
     companion object {
         @Volatile
         private var instance: FoxholeAdb? = null
