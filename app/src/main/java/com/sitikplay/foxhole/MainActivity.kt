@@ -3267,6 +3267,9 @@ class MainActivity : AppCompatActivity() {
                     AppCompatDelegate.setApplicationLocales(
                         LocaleListCompat.forLanguageTags(tag)
                     )
+                    // Локализация плитки следует за языком приложения: плитка
+                    // живёт в SystemUI и сама о смене пер-апп локали не узнает.
+                    ServerTileService.requestRefresh(this)
                 }
             }
             .setNegativeButton(getString(R.string.t116), null)

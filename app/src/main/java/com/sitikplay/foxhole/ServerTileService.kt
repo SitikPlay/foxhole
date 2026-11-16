@@ -3,11 +3,13 @@ package com.sitikplay.foxhole
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
+import androidx.appcompat.app.AppCompatDelegate
 
 class ServerTileService : TileService() {
 
@@ -43,11 +45,24 @@ class ServerTileService : TileService() {
         }.start()
     }
 
+    // Плитка живёт в SystemUI и не знает о пер-апп локалях приложения: её
+    // манифестная метка и getString() идут по системной локали телефона.
+    // Строим контекст с языком, выбранным в приложении, и сами проставляем
+    // label/subtitle/contentDescription (API 29+, см. guard в applyState).
+    private fun localizedString(resId: Int): String {
+        val loc = AppCompatDelegate.getApplicationLocales()[0] ?: return getString(resId)
+        val conf = Configuration(resources.configuration)
+        conf.setLocale(loc)
+        return createConfigurationContext(conf).getString(resId)
+    }
+
     private fun applyState(online: Boolean) {
         val tile = qsTile ?: return
         tile.state = if (online) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.subtitle = getString(if (online) R.string.t389 else R.string.t390)
+            tile.label = localizedString(R.string.t388)
+            tile.subtitle = localizedString(if (online) R.string.t389 else R.string.t390)
+            tile.contentDescription = tile.label
         }
         tile.updateTile()
     }
@@ -57,7 +72,9 @@ class ServerTileService : TileService() {
 
         tile.state = Tile.STATE_INACTIVE
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.subtitle = getString(R.string.t391)
+            tile.label = localizedString(R.string.t388)
+            tile.subtitle = localizedString(R.string.t391)
+            tile.contentDescription = tile.label
         }
         tile.updateTile()
     }
