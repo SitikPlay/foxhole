@@ -36,6 +36,7 @@ Foxhole даёт приложениям, которым ты доверяешь,
 - установка, удаление и корзина приложений;
 - журнал всех запросов (последние 200);
 - foxhole-adb — консольный помощник для ПК: обёртка над adb с русским интерфейсом и встроенным platform-tools;
+- встроенная проверка и скачивание обновлений напрямую с GitHub Releases;
 - 7 языков интерфейса: русский, английский, испанский, португальский, китайский, арабский, хинди;
 - свои шрифты и аккуратные светлая/тёмная темы (Material You на Android 12+).
 
@@ -75,6 +76,7 @@ Features:
 - app install, uninstall and trash;
 - request log (last 200);
 - foxhole-adb — a PC console helper: a wrapper around the official adb with a Russian interface and bundled platform-tools;
+- in-app update checker and APK downloader via GitHub Releases;
 - 7 UI languages: Russian, English, Spanish, Portuguese, Chinese, Arabic, Hindi;
 - bundled fonts and polished light/dark themes (Material You on Android 12+).
 
