@@ -455,4 +455,12 @@
     <string name="t457">पता सेव हुआ</string>
     <string name="t458">host:port फ़ॉर्मैट जाँचें (पोर्ट 1024–65535)</string>
     <string name="t459">फ़ॉलबैक पता मिटाया गया</string>
+    <string name="t463">अपडेट की जाँच करें</string>
+    <string name="t464">अपडेट जाँचे जा रहे हैं…</string>
+    <string name="t465">आपके पास नवीनतम संस्करण (%1$s) है</string>
+    <string name="t466">अपडेट उपलब्ध है: %1$s</string>
+    <string name="t467">डाउनलोड करें</string>
+    <string name="t468">बाद में</string>
+    <string name="t469">डाउनलोड शुरू हुआ। सूचनाएँ देखें।</string>
+    <string name="t470">अपडेट की जाँच नहीं हो सकी</string>
 </resources>

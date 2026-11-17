@@ -455,4 +455,12 @@
     <string name="t457">地址已保存</string>
     <string name="t458">请检查主机:端口格式（端口 1024–65535）</string>
     <string name="t459">备用地址已清除</string>
+    <string name="t463">检查更新</string>
+    <string name="t464">正在检查更新…</string>
+    <string name="t465">已是最新版本 (%1$s)</string>
+    <string name="t466">发现新版本：%1$s</string>
+    <string name="t467">下载</string>
+    <string name="t468">稍后</string>
+    <string name="t469">已开始下载，请查看通知栏。</string>
+    <string name="t470">检查更新失败</string>
 </resources>

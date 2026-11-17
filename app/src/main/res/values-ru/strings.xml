@@ -462,4 +462,12 @@
     <string name="t460">Запуск прерван</string>
     <string name="t461">Сервер Foxhole недоступен (%1$s)</string>
     <string name="t462">Не нашёл порт спаривания — открой окно с кодом и попробуй снова</string>
+    <string name="t463">Проверить обновления</string>
+    <string name="t464">Проверка обновлений…</string>
+    <string name="t465">У вас установлена актуальная версия (%1$s)</string>
+    <string name="t466">Доступно обновление: %1$s</string>
+    <string name="t467">Скачать</string>
+    <string name="t468">Позже</string>
+    <string name="t469">Загрузка началась. Проверьте уведомления.</string>
+    <string name="t470">Не удалось проверить обновления</string>
 </resources>

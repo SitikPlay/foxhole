@@ -455,4 +455,12 @@
     <string name="t457">تم حفظ العنوان</string>
     <string name="t458">تحقق من تنسيق مضيف:منفذ (المنفذ 1024–65535)</string>
     <string name="t459">تم مسح العنوان الاحتياطي</string>
+    <string name="t463">التحقق من وجود تحديثات</string>
+    <string name="t464">جارٍ التحقق من التحديثات…</string>
+    <string name="t465">لديك أحدث إصدار (%1$s)</string>
+    <string name="t466">تحديث متوفر: %1$s</string>
+    <string name="t467">تنزيل</string>
+    <string name="t468">لاحقاً</string>
+    <string name="t469">بدأ التنزيل. تحقق من الإشعارات.</string>
+    <string name="t470">تعذر التحقق من وجود تحديثات</string>
 </resources>

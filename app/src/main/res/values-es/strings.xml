@@ -455,4 +455,12 @@
     <string name="t457">Dirección guardada</string>
     <string name="t458">Comprueba el formato host:puerto (puerto 1024–65535)</string>
     <string name="t459">Dirección de reserva borrada</string>
+    <string name="t463">Buscar actualizaciones</string>
+    <string name="t464">Buscando actualizaciones…</string>
+    <string name="t465">Tienes la última versión (%1$s)</string>
+    <string name="t466">Actualización disponible: %1$s</string>
+    <string name="t467">Descargar</string>
+    <string name="t468">Más tarde</string>
+    <string name="t469">Descarga iniciada. Revisa las notificaciones.</string>
+    <string name="t470">No se pudo buscar actualizaciones</string>
 </resources>

@@ -21,9 +21,22 @@ Foxhole даёт приложениям, которым ты доверяешь,
 Что умеет:
 - любые shell-команды от uid 2000: dumpsys, ps, pm, settings, конвейеры;
 - готовые команды grant/revoke, appops, чтение и запись системных настроек;
+- три уровня доступа (READ / PERMISSIONS / FULL) — выбираешь при выдаче и меняешь без отзыва;
+- подтверждение устройством (биометрия или PIN) перед выдачей доступа и опасными действиями;
+- подтверждение опасных команд (rm, pm uninstall и др.) — обходы через подстановки и long-опции закрыты;
+- токен и секреты шифруются ключом Android Keystore;
+- маскирование секретов (токены, пароли, cookie) в терминале и истории команд;
+- ограничение частоты запросов клиентов (rate-limiter);
+- плитка в быстрых настройках: запуск и остановка сервера одним тапом, без открытия приложения;
+- автозапуск сервера по Wi-Fi (Android 11+), в том числе на сетях без интернета;
+- терминал с живым выводом и историей; высота консоли растёт под объём вывода;
+- профили команд: готовые шаблоны со слотами и свои профили; опасные значения отбрасываются с предупреждением;
+- отчёт по устройству и статистика активности приложений;
 - список ожидающих и установленных приложений с поиском — доступ можно выдать заранее;
+- установка, удаление и корзина приложений;
 - журнал всех запросов (последние 200);
-- проверка статуса сервера каждые 5 секунд, пока приложение открыто;
+- foxhole-adb — консольный помощник для ПК: обёртка над adb с русским интерфейсом и встроенным platform-tools;
+- 7 языков интерфейса: русский, английский, испанский, португальский, китайский, арабский, хинди;
 - свои шрифты и аккуратные светлая/тёмная темы (Material You на Android 12+).
 
 Требования:
@@ -33,7 +46,7 @@ Foxhole даёт приложениям, которым ты доверяешь,
 
 Ограничения:
 - это не root: доступны только права shell (uid 2000);
-- после перезагрузки телефона сервер нужно запускать заново;
+- после перезагрузки телефона сервер нужно запускать заново (или включи автозапуск на Android 11+);
 - запуск возможен только после ручного спаривания или команды с ПК.
 
 Без рекламы, трекеров и сбора данных. Исходный код открыт под GPL-3.0-or-later.
@@ -47,9 +60,22 @@ It starts a small server process as the `shell` user (uid 2000) and talks to it 
 Features:
 - any shell command as uid 2000: dumpsys, ps, pm, settings, pipelines;
 - shortcuts for grant/revoke, appops and system settings;
+- three access levels (READ / PERMISSIONS / FULL) — pick one when granting, change later without revoking;
+- device confirmation (biometrics or PIN) before granting access and dangerous actions;
+- dangerous command confirmation (rm, pm uninstall, etc.) — bypasses via substitutions and long options are blocked;
+- token and secrets encrypted with an Android Keystore key;
+- secret masking (tokens, passwords, cookies) in the terminal and command history;
+- client request rate limiting;
+- quick settings tile: start and stop the server with one tap, no need to open the app;
+- automatic server start on Wi-Fi (Android 11+), including networks without internet;
+- terminal with live output and history; console height grows with output;
+- command profiles: ready templates with slots and your own profiles; dangerous slot values are rejected with a warning;
+- device report and app activity statistics;
 - pending and installed app lists with search — approve apps in advance;
+- app install, uninstall and trash;
 - request log (last 200);
-- server status checked every 5 seconds while the app is open;
+- foxhole-adb — a PC console helper: a wrapper around the official adb with a Russian interface and bundled platform-tools;
+- 7 UI languages: Russian, English, Spanish, Portuguese, Chinese, Arabic, Hindi;
 - bundled fonts and polished light/dark themes (Material You on Android 12+).
 
 Requirements:
@@ -59,7 +85,7 @@ Requirements:
 
 Limitations:
 - not root: only shell privileges (uid 2000);
-- the server must be started again after a reboot;
+- the server must be started again after a reboot (or turn on autostart on Android 11+);
 - startup requires manual pairing or a PC command.
 
 No ads, trackers or data collection. Source code is available under GPL-3.0-or-later.

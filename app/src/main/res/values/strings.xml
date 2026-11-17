@@ -464,4 +464,12 @@
     <string name="t460">Start was interrupted</string>
     <string name="t461">Foxhole server unreachable (%1$s)</string>
     <string name="t462">Pairing port not found — open the code window and try again</string>
+    <string name="t463">Check for updates</string>
+    <string name="t464">Checking updates…</string>
+    <string name="t465">You have the latest version (%1$s)</string>
+    <string name="t466">Update available: %1$s</string>
+    <string name="t467">Download</string>
+    <string name="t468">Later</string>
+    <string name="t469">Download started. Check notifications.</string>
+    <string name="t470">Could not check updates</string>
 </resources>

@@ -455,4 +455,12 @@
     <string name="t457">Endereço salvo</string>
     <string name="t458">Verifique o formato host:porta (porta 1024–65535)</string>
     <string name="t459">Endereço de reserva apagado</string>
+    <string name="t463">Verificar atualizações</string>
+    <string name="t464">Verificando atualizações…</string>
+    <string name="t465">Você tem a versão mais recente (%1$s)</string>
+    <string name="t466">Atualização disponível: %1$s</string>
+    <string name="t467">Baixar</string>
+    <string name="t468">Mais tarde</string>
+    <string name="t469">Download iniciado. Verifique as notificações.</string>
+    <string name="t470">Não foi possível verificar atualizações</string>
 </resources>

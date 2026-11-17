@@ -67,10 +67,17 @@ import io.github.muntashirakon.adb.android.AdbMdns
 import java.io.File
 import java.net.Inet4Address
 import java.net.NetworkInterface
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Collections
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
+
+    private var cachedReleaseInfo: ReleaseInfo? = null
+    private var updateCheckedAtLeastOnce: Boolean = false
 
     private lateinit var out: TextView
 
@@ -630,6 +637,7 @@ class MainActivity : AppCompatActivity() {
         maybeOpenPending(intent)
 
         if (!Settings.langChosen(this)) showLanguageDialog()
+        checkForUpdates(manual = false)
     }
 
     private val paneBackCallback = object : androidx.activity.OnBackPressedCallback(false) {
@@ -3593,7 +3601,40 @@ class MainActivity : AppCompatActivity() {
         content.addView(space(24))
         content.addView(divider())
         content.addView(space(16))
-        content.addView(label("Foxhole ${versionName()}", 13f))
+
+        val updateStatusLabel = label(
+            when {
+                cachedReleaseInfo?.isNewer == true -> getString(R.string.t466, cachedReleaseInfo?.name ?: "")
+                updateCheckedAtLeastOnce -> getString(R.string.t465, versionName())
+                else -> "Foxhole ${versionName()}"
+            },
+            13f,
+            bold = cachedReleaseInfo?.isNewer == true
+        ).apply {
+            if (cachedReleaseInfo?.isNewer == true) {
+                setTextColor(themeColor(MR.attr.colorPrimary))
+                setOnClickListener {
+                    cachedReleaseInfo?.let { showUpdateDialog(it) }
+                }
+            }
+        }
+        content.addView(updateStatusLabel)
+        content.addView(space(8))
+        content.addView(button(getString(R.string.t463), outlined = true) {
+            snack(getString(R.string.t464))
+            checkForUpdates(manual = true) {
+                if (cachedReleaseInfo?.isNewer == true) {
+                    updateStatusLabel.text = getString(R.string.t466, cachedReleaseInfo?.name ?: "")
+                    updateStatusLabel.setTextColor(themeColor(MR.attr.colorPrimary))
+                    updateStatusLabel.setOnClickListener {
+                        cachedReleaseInfo?.let { showUpdateDialog(it) }
+                    }
+                } else if (cachedReleaseInfo != null) {
+                    updateStatusLabel.text = getString(R.string.t465, versionName())
+                }
+            }
+        })
+        content.addView(space(8))
         content.addView(
             label("Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})", 13f)
                 .apply { setTextColor(hintColor) }
@@ -3622,6 +3663,54 @@ class MainActivity : AppCompatActivity() {
             ViewCompat.requestApplyInsets(decor)
         }
         sheet.show()
+    }
+
+    private fun checkForUpdates(manual: Boolean, onDone: (() -> Unit)? = null) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val info = UpdateChecker.checkLatestRelease(versionName())
+            withContext(Dispatchers.Main) {
+                cachedReleaseInfo = info
+                updateCheckedAtLeastOnce = true
+                onDone?.invoke()
+
+                if (info != null && info.isNewer) {
+                    showUpdateDialog(info)
+                } else if (manual) {
+                    if (info == null) {
+                        snack(getString(R.string.t470), error = true)
+                    } else {
+                        snack(getString(R.string.t465, versionName()))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun showUpdateDialog(info: ReleaseInfo) {
+        if (isFinishing || isDestroyed) return
+        val padding = 16.dp
+        val bodyView = ScrollView(this).apply {
+            setPadding(padding, 8.dp, padding, 8.dp)
+            addView(TextView(this@MainActivity).apply {
+                text = if (info.body.isNotEmpty()) info.body else info.name
+                textSize = 14f
+                setTextColor(themeColor(MR.attr.colorOnSurface))
+                appTypeface(400)
+            })
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(info.name)
+            .setView(bodyView)
+            .setPositiveButton(R.string.t467) { _, _ ->
+                val url = info.apkUrl ?: "https://github.com/SitikPlay/foxhole/releases/latest"
+                val ok = UpdateChecker.downloadApk(this, url, "${info.tagName}.apk")
+                if (ok) {
+                    snack(getString(R.string.t469))
+                }
+            }
+            .setNegativeButton(R.string.t468, null)
+            .show()
     }
 
     private fun switchRow(text: String, checked: Boolean, onChange: (Boolean) -> Unit): MaterialSwitch =
