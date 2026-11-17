@@ -14,3 +14,10 @@
 *.jks
 *.keystore
 keystore.properties
+
+# Локальная сборка foxhole-adb: артефакты релиза и бинари кросс-компиляции.
+tools/foxhole-adb/out/
+tools/foxhole-adb/fx.exe
+tools/foxhole-adb/foxhole-adb-linux-amd64
+tools/foxhole-adb/foxhole-adb-darwin-arm64
+tools/foxhole-adb/foxhole-adb-windows-amd64.exe
