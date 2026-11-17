@@ -94,8 +94,14 @@ object UpdateChecker {
      * Сравнивает семантические версии, например v1.3.2 vs 1.3.1.
      */
     fun isVersionNewer(remoteTag: String, localVersion: String): Boolean {
-        val remoteNums = parseVersionNumbers(remoteTag)
-        val localNums = parseVersionNumbers(localVersion)
+        val cleanRemote = remoteTag.trim().removePrefix("v").removePrefix("V")
+        val cleanLocal = localVersion.trim().removePrefix("v").removePrefix("V")
+
+        val remoteCore = cleanRemote.substringBefore("-").substringBefore("+")
+        val localCore = cleanLocal.substringBefore("-").substringBefore("+")
+
+        val remoteNums = remoteCore.split(".").mapNotNull { it.filter { c -> c.isDigit() }.toIntOrNull() }
+        val localNums = localCore.split(".").mapNotNull { it.filter { c -> c.isDigit() }.toIntOrNull() }
 
         val maxLen = maxOf(remoteNums.size, localNums.size)
         for (i in 0 until maxLen) {
@@ -104,14 +110,18 @@ object UpdateChecker {
             if (r > l) return true
             if (r < l) return false
         }
-        return false
-    }
 
-    private fun parseVersionNumbers(v: String): List<Int> {
-        val clean = v.trim().removePrefix("v").removePrefix("V")
-        return clean.split(".", "-").mapNotNull { part ->
-            part.filter { it.isDigit() }.toIntOrNull()
+        val remoteHasPrerelease = cleanRemote.contains("-")
+        val localHasPrerelease = cleanLocal.contains("-")
+
+        if (!remoteHasPrerelease && localHasPrerelease) {
+            return true
         }
+        if (remoteHasPrerelease && !localHasPrerelease) {
+            return false
+        }
+
+        return false
     }
 
     /**
