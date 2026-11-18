@@ -34,8 +34,6 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     strategy:
       matrix:
         include:
@@ -92,13 +90,31 @@ jobs:
           name: foxhole-adb-${{ matrix.os }}-${{ matrix.arch }}
           path: tools/foxhole-adb/out/*
 
+  release:
+    needs: [test, build]
+    if: startsWith(github.ref, 'refs/tags/adb-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir -p dist
+          find artifacts -type f -exec cp -u {} dist/ \;
+          ls -la dist
+
       - name: Release name
-        if: startsWith(github.ref, 'refs/tags/adb-v')
         id: relname
         run: echo "name=Foxhole ADB ${GITHUB_REF_NAME#adb-} — Swiss Army Knife" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/adb-v')
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ steps.relname.outputs.name }}
@@ -119,5 +135,5 @@ jobs:
             Официальные Android Platform Tools скачиваются по команде fetch.
 
             Лицензия: GPL-3.0-or-later.
-          files: tools/foxhole-adb/out/*
+          files: dist/*
           generate_release_notes: true
