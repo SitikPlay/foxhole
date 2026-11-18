@@ -119,6 +119,15 @@ func cmdClip(ab string, args []string) int {
 	return cmdType(ab, args)
 }
 
+func isASCII(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] >= 128 {
+			return false
+		}
+	}
+	return true
+}
+
 // cmdType печатает текст на телефоне как с клавиатуры
 func cmdType(ab string, args []string) int {
 	if len(args) == 0 {
@@ -126,6 +135,15 @@ func cmdType(ab string, args []string) int {
 		return 2
 	}
 	raw := strings.Join(args, " ")
+
+	if !isASCII(raw) {
+		// Для не-ASCII (русский текст, символы) вставляем через буфер обмена
+		runAdb(ab, []string{"shell", "cmd", "clipboard", "set", raw})
+		runAdb(ab, []string{"shell", "input", "keyevent", "279"})
+		fmt.Println(msg("typeOk"))
+		return 0
+	}
+
 	// adb shell input text требует экранирования пробелов (%s) и спецсимволов
 	escaped := strings.ReplaceAll(raw, " ", "%s")
 	escaped = strings.ReplaceAll(escaped, "&", "\\&")
@@ -793,7 +811,7 @@ func findScrcpy() string {
 }
 
 // cmdMirror запускает интерактивную трансляцию экрана и управление телефоном
-func cmdMirror(_ string, args []string) int {
+func cmdMirror(ab string, args []string) int {
 	scrcpyPath := findScrcpy()
 	if scrcpyPath == "" {
 		fetchFlag := false
@@ -846,12 +864,16 @@ func cmdMirror(_ string, args []string) int {
 	}
 
 	fmt.Printf("Запуск трансляции экрана через %s...\n", scrcpyPath)
-	scrcpyCmdArgs := []string{"--window-title", "Foxhole Screen Mirror"}
+	scrcpyCmdArgs := []string{"--window-title", "Foxhole Screen Mirror", "--prefer-text"}
 	for _, a := range args {
 		if a != "--fetch" && a != "-f" && a != "--download" {
 			scrcpyCmdArgs = append(scrcpyCmdArgs, a)
 		}
 	}
+
+	doneChan := make(chan struct{})
+	go launchToolbar(ab, doneChan)
+	defer close(doneChan)
 
 	c := exec.Command(scrcpyPath, scrcpyCmdArgs...)
 	c.Stdin = os.Stdin

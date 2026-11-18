@@ -165,6 +165,9 @@ func run(argv []string) int {
 		return cmdMirror(abPath, args)
 	case "view":
 		return cmdView(abPath, args)
+	case "panel", "toolbar":
+		launchToolbar(abPath, nil)
+		return 0
 	default:
 		fmt.Fprintln(os.Stderr, msg("unknown")+" "+sub)
 		fmt.Fprint(os.Stderr, msg("usage"))
