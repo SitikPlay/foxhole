@@ -57,9 +57,11 @@ Google не публикует sha-суммы к zip «latest», поэтому 
 
 | Группа | Команды |
 |---|---|
-| сервис | `help`, `version`, `doctor`, `fetch` |
+| сервис | `help`, `version`, `doctor`, `fetch`, `ask` |
+| управление Foxhole | `start`, `status` (`ping`), `stop` |
 | подключение | `devices`, `pair`, `connect`, `disconnect`, `mdns`, `wait-for-device`, `start-server`, `kill-server`, `tcpip`* , `usb`, `root`* , `unroot`* , `reboot`* |
-| файлы и экран | `install`, `install-multiple`, `push`, `pull`, `screenshot`, `sideload`, `bugreport`, `backup`* |
+| файлы и экран | `mirror`, `view`, `install`, `install-all`, `install-multiple`, `push`, `pull`, `apk pull`, `photos`, `screenshot`, `record`, `sideload`, `bugreport`, `backup`* |
+| утилиты и ввод | `info`, `top`, `open`, `clip`, `type`, `key`, `volume`, `darkmode`, `stay-awake`, `wifi`, `search`, `clear`, `anim`, `dns`, `battery` |
 | чтение (не меняет телефон) | `shell`, `logcat`, `dumpsys`, `getprop`, `pm list packages`, `setting get/list`, `wm size`/`wm density` (без значения) |
 | изменение (под замком) | `setting put/delete`, `setprop`, `pm grant/revoke`, `uninstall`, `wm size/density` со значением, `forward`/`reverse` |
 
@@ -71,6 +73,24 @@ Google не публикует sha-суммы к zip «latest», поэтому 
 Примеры:
 
 ```
+foxhole-adb start                            # запустить сервер Foxhole в 1 клик
+foxhole-adb status                           # проверить статус сервера Foxhole
+foxhole-adb info                             # паспорт устройства (модель, Android, IP, батарея)
+foxhole-adb ask "Как включить режим Wi-Fi?"  # спросить встроенного ИИ-помощника
+foxhole-adb photos                           # выгрузить последние фото на ПК
+foxhole-adb record 15 demo.mp4               # записать 15 секунд экрана в видео
+foxhole-adb clip "Скопировано с ПК"          # передать текст в буфер обмена телефона
+foxhole-adb dns adguard                      # включить блокировку рекламы через Private DNS
+foxhole-adb anim off                         # отключить анимации интерфейса (максимальная скорость)
+foxhole-adb apk pull com.example.app         # извлечь APK установленного приложения на ПК
+foxhole-adb open https://github.com/SitikPlay # открыть ссылку в браузере телефона
+foxhole-adb darkmode toggle                  # переключить темную/светлую тему
+foxhole-adb stay-awake on                    # держать экран включенным при подключении к ПК
+foxhole-adb volume 12                        # установить громкость медиа
+foxhole-adb search telegram                  # найти установленный пакет Telegram
+foxhole-adb clear com.sitikplay.foxhole      # очистить кэш и данные приложения
+foxhole-adb top                              # сводка нагрузки CPU и оперативной памяти
+foxhole-adb install-all ./apks               # установить все APK из папки
 foxhole-adb doctor
 foxhole-adb pair 192.168.1.5:38815 123456
 foxhole-adb connect 192.168.1.5:38815
@@ -139,12 +159,12 @@ this explicit command. adb lookup order: `--adb` flag → `FOXHOLE_ADB` env →
 `platform-tools` next to the binary → PATH → the default directory.
 
 `foxhole-adb help` is the authoritative, full command list (it also prints on a
-typo), with a one-line explanation per command. It covers the whole usual adb
-surface: devices/pair/connect/disconnect/mdns/wait-for-device, start-server/
-kill-server/tcpip/usb/root/unroot/reboot, install/install-multiple/push/pull/
-screenshot/sideload/bugreport/backup, read-only shell/logcat/dumpsys/getprop/
-pm list/setting get-list/wm, guarded changes (setting put-delete, setprop,
-pm grant-revoke, uninstall, wm with a value, forward/reverse). Commands that
+typo), with a one-line explanation per command. It covers the full adb
+surface and Swiss Army Tool capabilities: Foxhole server control (`start`, `status`, `stop`),
+AI assistant (`ask`), file/media tools (`photos`, `record`, `apk pull`, `install-all`),
+device tweaks (`clip`, `type`, `key`, `info`, `anim`, `dns`, `battery`),
+standard adb connection (`devices`, `pair`, `connect`, `disconnect`, `tcpip`, `root`, `reboot`),
+and all read/write settings and shell commands. Commands that
 change the phone are guarded: they require `--yes` or an interactive y/N
 confirmation and validate their arguments before adb runs at all.
 

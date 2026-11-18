@@ -15,6 +15,12 @@ func init() {
   help                     эта справка; version — номер версии
   doctor                   проверить adb, устройства и порт сервера Foxhole; ничего не меняет
   fetch                    скачать platform-tools (единственная сетевая команда)
+  ask ВОПРОС               спросить ИИ-ассистента Foxhole прямо из терминала
+
+Управление Foxhole на телефоне:
+  start                    запустить сервер Foxhole на телефоне через adb
+  status (или ping)        проверить доступность сервера Foxhole и процесс
+  stop                     остановить сервер Foxhole на телефоне
 
 Подключение и демон adb:
   devices                  список устройств (как «adb devices -l»)
@@ -30,15 +36,38 @@ func init() {
   root / unroot            права root у adbd на телефоне; под замком
   reboot [режим]           перезагрузка: пусто|recovery|bootloader|fastboot|sideload; под замком
 
-Файлы и экран:
+Файлы, мультимедиа и экран:
+  mirror [--fetch]         подключение к экрану телефона (зеркалирование и управление scrcpy)
+  view                     мгновенный просмотр экрана телефона в окне на ПК
+  photos [ПАПКА] [-n N]    быстро скопировать последние N фото/скриншотов на ПК
+  screenshot ФАЙЛ.png      снимок экрана телефона (exec-out screencap, бинарно)
+  record [СЕК] [ФАЙЛ.mp4]  запись экрана устройства в видеофайл
   install APK              установить APK (adb install -r); файл проверяется заранее
+  install-all ПАПКА        установить все .apk из указанной папки пакетом
   install-multiple APK…    установить набор сплит-APK (несколько файлов)
   push ЛОКАЛ УДАЛЁН        копировать файл на телефон (ровно два аргумента)
   pull УДАЛЁН ЛОКАЛ        копировать файл с телефона (ровно два аргумента)
-  screenshot ФАЙЛ.png      снимок экрана телефона (exec-out screencap, бинарно)
+  apk pull ПАКЕТ [ФАЙЛ]    выгрузить установленный APK любого приложения на ПК
   sideload ZIP             прошивка zip в режиме recovery; файл проверяется заранее
   bugreport [ФАЙЛ.zip]     полный отчёт для отладки (может занять несколько минут)
   backup [опции]           резервная копия в формате adb; под замком
+
+Удобство, ввод и система:
+  info                     сводка об устройстве: модель, Android, батарея, сеть, память
+  top                      нагрузка на процессор (топ процессов) и память RAM
+  open ССЫЛКА              открыть URL или диплинк в браузере телефона
+  clip [ТЕКСТ]             прочитать или записать буфер обмена телефона
+  type "ТЕКСТ"             ввести текст в активное поле на телефоне
+  key КНОПКА               нажать кнопку (home, back, power, volup, voldown, enter и др.)
+  volume [0-15|up|down]    управление громкостью медиа на телефоне
+  darkmode [on|off|toggle] переключение темной / светлой темы Android
+  stay-awake [on|off]      не гасить экран при подключении к ПК
+  wifi [on|off]            включение / выключение Wi-Fi модуля
+  search СЛОВО             быстрый поиск установленного приложения по названию
+  clear ПАКЕТ              очистить кэш и данные приложения в один клик
+  anim [off|default|МАСШТАБ] управление скоростью системных анимаций (1x / 0.5x / off)
+  dns [adguard|cloudflare|google|off] переключение Private DNS (блокировка рекламы)
+  battery [УРОВЕНЬ|reset]  симуляция уровня заряда батареи (0-100 или сброс)
 
 Читать с телефона (безопасно, ничего не меняет):
   shell …                  интерактивный шелл телефона; Ctrl+C останавливает
@@ -74,6 +103,12 @@ foxhole-adb service:
   help                     this help; version — print the version
   doctor                   check adb, devices and the Foxhole server port; changes nothing
   fetch                    download platform-tools (the only networked command)
+  ask QUESTION             ask the Foxhole AI assistant directly from terminal
+
+Foxhole management:
+  start                    start the Foxhole server on phone via adb
+  status (or ping)         check Foxhole server reachability and process
+  stop                     stop the Foxhole server on phone
 
 Connection and the adb daemon:
   devices                  list devices (like "adb devices -l")
@@ -89,15 +124,38 @@ Connection and the adb daemon:
   root / unroot            root privileges for adbd on the phone; guarded
   reboot [mode]            reboot: none|recovery|bootloader|fastboot|sideload; guarded
 
-Files and screen:
+Files, media and screen:
+  mirror [--fetch]         connect to phone screen (mirroring and mouse/keyboard via scrcpy)
+  view                     instant view of phone screen in desktop image viewer
+  photos [DIR] [-n N]      quickly pull latest N photos/screenshots to PC
+  screenshot FILE.png      phone screenshot (exec-out screencap, binary safe)
+  record [SEC] [OUT.mp4]   record device screen to video
   install APK              install an APK (adb install -r); the file is checked first
+  install-all DIR          batch install all .apk files from folder
   install-multiple APK…    install a set of split APKs (several files)
   push LOCAL REMOTE        copy a file to the phone (exactly two arguments)
   pull REMOTE LOCAL        copy a file from the phone (exactly two arguments)
-  screenshot FILE.png      phone screenshot (exec-out screencap, binary safe)
+  apk pull PKG [OUT.apk]   pull installed APK of any app to PC
   sideload ZIP             flash a zip in recovery mode; the file is checked first
   bugreport [FILE.zip]     full debug report (can take minutes)
   backup [options]         adb-format backup; guarded
+
+Device utilities and system:
+  info                     device summary: model, Android version, battery, storage, IP
+  top                      quick CPU load (top processes) and RAM consumption
+  open URL                 open URL or deep link in phone's browser/apps
+  clip [TEXT]              read or set Android clipboard
+  type "TEXT"              type text into active input field on phone
+  key KEYNAME              press hardware/system key (home, back, power, volup, enter...)
+  volume [0-15|up|down]    control media volume level on phone
+  darkmode [on|off|toggle] toggle dark/light theme
+  stay-awake [on|off]      keep screen on while plugged into PC
+  wifi [on|off]            enable or disable Wi-Fi on phone
+  search QUERY             quick search for installed package by name
+  clear PKG                clear app data and cache in one click
+  anim [off|default|SCALE] set system animation scales (1x / 0.5x / off)
+  dns [adguard|cloudflare|google|off] switch Private DNS (system-wide ad blocking)
+  battery [LEVEL|reset]    mock battery level (0-100 or reset to real)
 
 Read-only from the phone (safe, changes nothing):
   shell …                  interactive phone shell; Ctrl+C stops it
@@ -330,6 +388,106 @@ Hints:
 	messages["installMultiBad"] = ruEn{
 		ru: "Формат: foxhole-adb install-multiple APK… (один или несколько файлов).",
 		en: "Format: foxhole-adb install-multiple APK… (one or more files).",
+	}
+	messages["fhStartSearching"] = ruEn{
+		ru: "Поиск установленного пакета Foxhole (com.sitikplay.foxhole)...",
+		en: "Searching for installed Foxhole package (com.sitikplay.foxhole)...",
+	}
+	messages["fhStartNotInstalled"] = ruEn{
+		ru: "Ошибка: приложение Foxhole не найдено на устройстве.",
+		en: "Error: Foxhole app is not found on the device.",
+	}
+	messages["fhStartApkFound"] = ruEn{
+		ru: "Найден APK: %s",
+		en: "Found APK: %s",
+	}
+	messages["fhStartLaunchingScript"] = ruEn{
+		ru: "Запуск через start.sh...",
+		en: "Launching via start.sh...",
+	}
+	messages["fhStartLaunchingAppProcess"] = ruEn{
+		ru: "Запуск сервера через app_process (uid 2000)...",
+		en: "Launching server via app_process (uid 2000)...",
+	}
+	messages["fhStartChecking"] = ruEn{
+		ru: "Проверка ответа сервера на порту 27183...",
+		en: "Checking server response on port 27183...",
+	}
+	messages["fhStatusRunning"] = ruEn{
+		ru: "Сервер Foxhole: РАБОТАЕТ",
+		en: "Foxhole Server: RUNNING",
+	}
+	messages["fhStatusStopped"] = ruEn{
+		ru: "Сервер Foxhole: ОСТАНОВЛЕН (порт 27183 не отвечает)",
+		en: "Foxhole Server: STOPPED (port 27183 not responding)",
+	}
+	messages["fhStopDone"] = ruEn{
+		ru: "Сервер Foxhole остановлен.",
+		en: "Foxhole server stopped.",
+	}
+	messages["clipGetHelp"] = ruEn{
+		ru: "Буфер обмена: используйте 'fx clip set ТЕКСТ' или 'fx type ТЕКСТ'.",
+		en: "Clipboard: use 'fx clip set TEXT' or 'fx type TEXT'.",
+	}
+	messages["clipSetOk"] = ruEn{
+		ru: "Текст скопирован в буфер обмена телефона: %s",
+		en: "Text copied to phone clipboard: %s",
+	}
+	messages["typeOk"] = ruEn{
+		ru: "Текст напечатан на телефоне.",
+		en: "Text typed on phone.",
+	}
+	messages["photosNone"] = ruEn{
+		ru: "Свежих фото или скриншотов на устройстве не найдено.",
+		en: "No recent photos or screenshots found on device.",
+	}
+	messages["photosDownloading"] = ruEn{
+		ru: "Скачивание последних %d файлов...",
+		en: "Downloading %d recent files...",
+	}
+	messages["photosDone"] = ruEn{
+		ru: "Готово! Файлы сохранены в текущую папку.",
+		en: "Done! Files saved to current folder.",
+	}
+	messages["recordStarting"] = ruEn{
+		ru: "Запись экрана (%d сек.) в %s...",
+		en: "Recording screen (%d sec.) to %s...",
+	}
+	messages["recordPulling"] = ruEn{
+		ru: "Выгрузка видеофайла на компьютер...",
+		en: "Pulling video file to computer...",
+	}
+	messages["recordDone"] = ruEn{
+		ru: "Запись завершена: %s",
+		en: "Recording finished: %s",
+	}
+	messages["apkNotFound"] = ruEn{
+		ru: "Пакет %s не найден на устройстве.",
+		en: "Package %s is not found on device.",
+	}
+	messages["apkPulling"] = ruEn{
+		ru: "Выгрузка APK для %s (%s)...",
+		en: "Pulling APK for %s (%s)...",
+	}
+	messages["apkPulled"] = ruEn{
+		ru: "APK сохранён: %s",
+		en: "APK saved: %s",
+	}
+	messages["installAllStart"] = ruEn{
+		ru: "Найдено %d APK файлов, начинаем установку...",
+		en: "Found %d APK files, starting installation...",
+	}
+	messages["installAllDone"] = ruEn{
+		ru: "Установка завершена: успешно %d из %d.",
+		en: "Installation finished: %d of %d successful.",
+	}
+	messages["animSetOk"] = ruEn{
+		ru: "Масштаб системных анимаций установлен в: %s",
+		en: "System animation scales set to: %s",
+	}
+	messages["dnsAdguardOk"] = ruEn{
+		ru: "Включен AdGuard Private DNS (блокировка рекламы активна)",
+		en: "Enabled AdGuard Private DNS (ad-blocking active)",
 	}
 }
 

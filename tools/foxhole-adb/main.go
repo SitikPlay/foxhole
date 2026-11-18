@@ -33,6 +33,8 @@ func run(argv []string) int {
 	case "-v", "--version", "version":
 		fmt.Println("foxhole-adb", version, "(GPL-3.0)")
 		return 0
+	case "ask":
+		return cmdAsk(args)
 	}
 
 	ab := os.Getenv("FOXHOLE_ADB")
@@ -115,6 +117,54 @@ func run(argv []string) int {
 		return cmdRootUnroot(abPath, "root", args)
 	case "unroot":
 		return cmdRootUnroot(abPath, "unroot", args)
+	case "start":
+		return cmdFoxholeStart(abPath, args)
+	case "status", "ping":
+		return cmdFoxholeStatus(abPath, args)
+	case "stop":
+		return cmdFoxholeStop(abPath, args)
+	case "clip":
+		return cmdClip(abPath, args)
+	case "type":
+		return cmdType(abPath, args)
+	case "photos":
+		return cmdPhotos(abPath, args)
+	case "record":
+		return cmdRecord(abPath, args)
+	case "apk":
+		return cmdApk(abPath, args)
+	case "install-all":
+		return cmdInstallAll(abPath, args)
+	case "anim":
+		return cmdAnim(abPath, args)
+	case "dns":
+		return cmdDns(abPath, args)
+	case "battery":
+		return cmdBattery(abPath, args)
+	case "key":
+		return cmdKey(abPath, args)
+	case "info":
+		return cmdInfo(abPath, args)
+	case "open":
+		return cmdOpen(abPath, args)
+	case "darkmode":
+		return cmdDarkmode(abPath, args)
+	case "stay-awake":
+		return cmdStayAwake(abPath, args)
+	case "search", "find":
+		return cmdSearch(abPath, args)
+	case "clear":
+		return cmdClear(abPath, args)
+	case "volume":
+		return cmdVolume(abPath, args)
+	case "top":
+		return cmdTop(abPath, args)
+	case "wifi":
+		return cmdWifi(abPath, args)
+	case "mirror":
+		return cmdMirror(abPath, args)
+	case "view":
+		return cmdView(abPath, args)
 	default:
 		fmt.Fprintln(os.Stderr, msg("unknown")+" "+sub)
 		fmt.Fprint(os.Stderr, msg("usage"))
