@@ -864,12 +864,30 @@ func cmdMirror(ab string, args []string) int {
 	}
 
 	fmt.Printf("Запуск трансляции экрана через %s...\n", scrcpyPath)
-	scrcpyCmdArgs := []string{"--window-title", "Foxhole Screen Mirror", "--prefer-text"}
+
+	hasKeyboardFlag := false
+	for _, a := range args {
+		if strings.HasPrefix(a, "--keyboard") || a == "-K" {
+			hasKeyboardFlag = true
+			break
+		}
+	}
+
+	scrcpyCmdArgs := []string{"--window-title", "Foxhole Screen Mirror"}
+	if !hasKeyboardFlag {
+		scrcpyCmdArgs = append(scrcpyCmdArgs, "--keyboard=uhid")
+	}
 	for _, a := range args {
 		if a != "--fetch" && a != "-f" && a != "--download" {
 			scrcpyCmdArgs = append(scrcpyCmdArgs, a)
 		}
 	}
+
+	fmt.Println("Горячие клавиши управления:")
+	fmt.Println("  • Питание: Mod+p | Громкость: Mod+u / Mod+d | Назад: Mod+b (или ПКМ) | Домой: Mod+h | Недавние: Mod+s (Mod = Alt)")
+	fmt.Println("  • Ввод текста: scrcpy запущен в режиме UHID (физическая клавиатура).")
+	fmt.Println("  • Для ввода по-русски включите русскую раскладку в Android (кнопка [⌨ Раскладка] на боковой панели).")
+	fmt.Println("  • Быстрая вставка текста из буфера ПК: Ctrl+V (или кнопка [📋 Вставить] на панели).")
 
 	doneChan := make(chan struct{})
 	go launchToolbar(ab, doneChan)

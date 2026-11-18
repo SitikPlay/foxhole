@@ -3,6 +3,7 @@
 package main
 
 import (
+	"runtime"
 	"syscall"
 	"unsafe"
 )
@@ -19,9 +20,11 @@ var (
 	procPostQuitMessage  = user32.NewProc("PostQuitMessage")
 	procRegisterClassExW = user32.NewProc("RegisterClassExW")
 	procShowWindow       = user32.NewProc("ShowWindow")
+	procUpdateWindow     = user32.NewProc("UpdateWindow")
 	procTranslateMessage = user32.NewProc("TranslateMessage")
 	procSendMessageW     = user32.NewProc("SendMessageW")
 	procPostMessageW     = user32.NewProc("PostMessageW")
+	procLoadCursorW      = user32.NewProc("LoadCursorW")
 	procGetStockObject   = gdi32.NewProc("GetStockObject")
 	procGetModuleHandleW = kernel32.NewProc("GetModuleHandleW")
 )
@@ -39,6 +42,8 @@ const (
 	WM_SETFONT       = 0x0030
 	WM_CLOSE         = 0x0010
 	DEFAULT_GUI_FONT = 17
+	IDC_ARROW        = 32512
+	SW_SHOW          = 5
 )
 
 type WNDCLASSEXW struct {
@@ -70,17 +75,20 @@ var (
 	toolbarHwnd    uintptr
 )
 
-func toolbarWndProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
+func toolbarWndProc(hwnd, msg, wParam, lParam uintptr) uintptr {
 	switch msg {
 	case WM_COMMAND:
 		id := int(wParam & 0xffff)
 		go handleToolbarButton(id)
 		return 0
+	case WM_CLOSE:
+		procDestroyWindow.Call(hwnd)
+		return 0
 	case WM_DESTROY:
 		procPostQuitMessage.Call(0)
 		return 0
 	}
-	r, _, _ := procDefWindowProcW.Call(hwnd, uintptr(msg), wParam, lParam)
+	r, _, _ := procDefWindowProcW.Call(hwnd, msg, wParam, lParam)
 	return r
 }
 
@@ -101,6 +109,10 @@ func handleToolbarButton(id int) {
 		runAdb(toolbarAdbPath, []string{"shell", "input", "keyevent", "3"})
 	case 106: // Недавние
 		runAdb(toolbarAdbPath, []string{"shell", "input", "keyevent", "187"})
+	case 107: // Вставить (Clipboard paste)
+		runAdb(toolbarAdbPath, []string{"shell", "input", "keyevent", "279"})
+	case 108: // Раскладка (Physical Keyboard Settings)
+		runAdb(toolbarAdbPath, []string{"shell", "am", "start", "-a", "android.settings.HARD_KEYBOARD_SETTINGS"})
 	}
 }
 
@@ -123,16 +135,21 @@ func createToolbarButton(parent uintptr, text string, id, x, y, w, h int, font u
 }
 
 func launchToolbar(ab string, autoCloseChan <-chan struct{}) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	toolbarAdbPath = ab
 	className, _ := syscall.UTF16PtrFromString("FoxholeToolbarWindow")
 	hInstance, _, _ := procGetModuleHandleW.Call(0)
+	cursor, _, _ := procLoadCursorW.Call(0, uintptr(IDC_ARROW))
 
 	var wc WNDCLASSEXW
 	wc.CbSize = uint32(unsafe.Sizeof(wc))
 	wc.Style = 0x0003
 	wc.LpfnWndProc = syscall.NewCallback(toolbarWndProc)
 	wc.HInstance = hInstance
-	wc.HbrBackground = 6
+	wc.HCursor = cursor
+	wc.HbrBackground = 16 // COLOR_BTNFACE + 1
 	wc.LpszClassName = className
 
 	procRegisterClassExW.Call(uintptr(unsafe.Pointer(&wc)))
@@ -143,7 +160,7 @@ func launchToolbar(ab string, autoCloseChan <-chan struct{}) {
 		uintptr(unsafe.Pointer(className)),
 		uintptr(unsafe.Pointer(title)),
 		WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_VISIBLE,
-		50, 50, 165, 310,
+		50, 50, 180, 365,
 		0, 0, hInstance, 0,
 	)
 	if hwnd == 0 {
@@ -151,19 +168,26 @@ func launchToolbar(ab string, autoCloseChan <-chan struct{}) {
 	}
 	toolbarHwnd = hwnd
 
+	procShowWindow.Call(hwnd, uintptr(SW_SHOW))
+	procUpdateWindow.Call(hwnd)
+
 	font, _, _ := procGetStockObject.Call(DEFAULT_GUI_FONT)
 
-	createToolbarButton(hwnd, "⏻ Питание", 101, 10, 10, 128, 34, font)
-	createToolbarButton(hwnd, "🔊 Громкость +", 102, 10, 50, 128, 34, font)
-	createToolbarButton(hwnd, "🔉 Громкость -", 103, 10, 90, 128, 34, font)
-	createToolbarButton(hwnd, "◀ Назад", 104, 10, 135, 128, 34, font)
-	createToolbarButton(hwnd, "⌂ Домой", 105, 10, 175, 128, 34, font)
-	createToolbarButton(hwnd, "▢ Недавние", 106, 10, 215, 128, 34, font)
+	createToolbarButton(hwnd, "⏻ Питание", 101, 10, 10, 142, 32, font)
+	createToolbarButton(hwnd, "🔊 Громкость +", 102, 10, 48, 142, 32, font)
+	createToolbarButton(hwnd, "🔉 Громкость -", 103, 10, 86, 142, 32, font)
+	createToolbarButton(hwnd, "◀ Назад", 104, 10, 126, 142, 32, font)
+	createToolbarButton(hwnd, "⌂ Домой", 105, 10, 164, 142, 32, font)
+	createToolbarButton(hwnd, "▢ Недавние", 106, 10, 202, 142, 32, font)
+	createToolbarButton(hwnd, "📋 Вставить", 107, 10, 242, 142, 32, font)
+	createToolbarButton(hwnd, "⌨ Раскладка", 108, 10, 280, 142, 32, font)
 
 	if autoCloseChan != nil {
 		go func() {
 			<-autoCloseChan
-			procPostMessageW.Call(hwnd, WM_CLOSE, 0, 0)
+			if toolbarHwnd != 0 {
+				procPostMessageW.Call(toolbarHwnd, WM_CLOSE, 0, 0)
+			}
 		}()
 	}
 
