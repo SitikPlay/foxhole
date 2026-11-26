@@ -38,7 +38,9 @@ object Server {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        val token = args.getOrNull(0) ?: return
+        val token = System.getenv("FOXHOLE_TOK")?.takeIf { it.isNotBlank() }
+            ?: args.getOrNull(0)?.takeIf { it != "-" && it.isNotBlank() }
+            ?: return
         val port = args.getOrNull(1)?.toIntOrNull()?.takeIf { it in 1024..65535 } ?: PORT
         val server = ServerSocket(port, 10, InetAddress.getByName("127.0.0.1"))
         println("server started on $port, uid=${android.os.Process.myUid()}")

@@ -19,26 +19,31 @@ object ServerScript {
     private fun shellSingleQuote(s: String): String = s.replace("'", "'\\''")
 
     fun content(pkg: String, tokenPath: String, port: Int, noTokenMsg: String): String {
+        val logPath = "/data/local/tmp/foxhole.log"
         val invoke = "app_process -Djava.class.path=\"\$CLASSPATH\" " +
-            "/system/bin --nice-name=foxhole ${Server::class.java.name} \"\$TOK\" $port " +
-            "> /data/local/tmp/foxhole.log 2>&1 < /dev/null &"
+            "/system/bin --nice-name=foxhole ${Server::class.java.name} - $port " +
+            "> $logPath 2>&1 < /dev/null &"
         return "#!/system/bin/sh\n" +
-            "TOK=$(cat \"$tokenPath\" 2>/dev/null)\n" +
+            "umask 077\n" +
+            "TOK=\$(cat \"$tokenPath\" 2>/dev/null)\n" +
             "if [ -z \"\$TOK\" ]; then\n" +
             "  echo '${shellSingleQuote(noTokenMsg)}'\n" +
             "  exit 1\n" +
             "fi\n" +
+            "rm -f \"$tokenPath\"\n" +
+            "touch $logPath 2>/dev/null; chmod 600 $logPath 2>/dev/null || true\n" +
             "CLASSPATH=\$(pm path $pkg | head -n 1 | sed 's/^package://' | tr -d '\\r')\n" +
             "if [ -z \"\$CLASSPATH\" ]; then\n" +
             "  echo 'ERR package path not found'\n" +
             "  exit 1\n" +
             "fi\n" +
+            "export FOXHOLE_TOK=\"\$TOK\"\n" +
             "if command -v setsid >/dev/null 2>&1; then\n" +
             "  setsid $invoke\n" +
             "else\n" +
             "  nohup $invoke\n" +
             "fi\n" +
-            "rm -f \"$tokenPath\"\n" +
+            "unset TOK FOXHOLE_TOK\n" +
             "sleep 3\n"
     }
 

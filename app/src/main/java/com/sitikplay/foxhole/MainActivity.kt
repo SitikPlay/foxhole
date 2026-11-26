@@ -531,7 +531,8 @@ class MainActivity : AppCompatActivity() {
         listOf(
             homeActionCardContent(getString(R.string.t399), getString(R.string.t400)) { showProfilesSheet() },
             homeActionCardContent(getString(R.string.t493), getString(R.string.t494)) { openTweaksSheet() },
-            homeActionCardContent(getString(R.string.t516), getString(R.string.t517)) { openMonitorSheet() }
+            homeActionCardContent(getString(R.string.t516), getString(R.string.t517)) { openMonitorSheet() },
+            homeActionCardContent(getString(R.string.t574), getString(R.string.t575)) { openSecurityShieldSheet() }
         ).forEach { entry ->
             root.addView(
                 cardFor(entry),
@@ -3666,6 +3667,19 @@ class MainActivity : AppCompatActivity() {
                     }
                 )
             )
+            body.addView(space(8))
+            body.addView(button(getString(R.string.t602), outlined = true) {
+                Thread {
+                    val logs = AppInspector.readLogcat(this, d.pkg, d.pid)
+                    runOnUiThread {
+                        if (isFinishing || isDestroyed) return@runOnUiThread
+                        showMonospaceTextDialog(
+                            getString(R.string.t603, d.pkg),
+                            logs.ifBlank { getString(R.string.t604) }
+                        )
+                    }
+                }.start()
+            })
 
             body.addView(space(14)); body.addView(divider()); body.addView(space(10))
             body.addView(
@@ -4082,7 +4096,7 @@ class MainActivity : AppCompatActivity() {
         }.start()
     }
 
-    private fun showReportDialog(text: String) {
+    private fun showMonospaceTextDialog(title: String, text: String) {
         val body = TextView(this).apply {
             appTypeface(400, code = true)
             textSize = 12f
@@ -4090,13 +4104,17 @@ class MainActivity : AppCompatActivity() {
             setLineSpacing(2f, 1f)
             this@apply.text = text
         }
-        val wrap = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(24.dp, 8.dp, 24.dp, 0)
+        val wrap = ScrollView(this).apply {
+            addView(
+                LinearLayout(this@MainActivity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(24.dp, 8.dp, 24.dp, 0)
+                    addView(body)
+                }
+            )
         }
-        wrap.addView(body)
         MaterialAlertDialogBuilder(this)
-            .setTitle(getString(R.string.t423))
+            .setTitle(title)
             .setView(wrap)
             .setNegativeButton(getString(R.string.t116), null)
             .setNeutralButton(getString(R.string.t529)) { _, _ -> shareText(text) }
@@ -4105,6 +4123,284 @@ class MainActivity : AppCompatActivity() {
                 snack(getString(R.string.t165))
             }
             .secureShow()
+    }
+
+    private fun openSecurityShieldSheet() {
+        BiometricGate.confirm(
+            this,
+            getString(R.string.t574),
+            getString(R.string.t575)
+        ) {
+            showSecurityShieldSheet()
+        }
+    }
+
+    private fun showSecurityShieldSheet() {
+        val (sheet, content) = createSheet(getString(R.string.t574), getString(R.string.t575))
+        val statusMsg = label(getString(R.string.t109), 13f).apply { setTextColor(hintColor) }
+        content.addView(statusMsg)
+        val body = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+        }
+        content.addView(body)
+        showSheetWithInsets(sheet, content)
+
+        fun runScan() {
+            statusMsg.text = getString(R.string.t109)
+            statusMsg.setTextColor(hintColor)
+            statusMsg.visibility = View.VISIBLE
+            body.visibility = View.GONE
+            Thread {
+                val report = SecurityShield.scan(this)
+                runOnUiThread {
+                    if (isFinishing || isDestroyed || !sheet.isShowing) return@runOnUiThread
+                    statusMsg.visibility = View.GONE
+                    body.visibility = View.VISIBLE
+                    renderShieldReport(sheet, body, report, onRescan = { runScan() })
+                }
+            }.start()
+        }
+        runScan()
+    }
+
+    private fun renderShieldReport(
+        sheet: BottomSheetDialog,
+        body: LinearLayout,
+        r: SecurityShield.Report,
+        onRescan: () -> Unit
+    ) {
+        body.removeAllViews()
+        body.addView(label(getString(R.string.t576, r.score), 16f, bold = true))
+        body.addView(space(8))
+        body.addView(monitorProgress(r.score))
+        if (!r.serverOnline) {
+            body.addView(space(8))
+            body.addView(label(getString(R.string.t611), 12f).apply { setTextColor(hintColor) })
+        }
+
+        body.addView(space(14)); body.addView(divider()); body.addView(space(10))
+        body.addView(label(getString(R.string.t577), 14f, bold = true))
+        body.addView(space(4))
+        val yesNo = { v: Boolean -> getString(if (v) R.string.t512 else R.string.t513) }
+        body.addView(
+            label(
+                getString(R.string.t578, yesNo(r.confirmDeviceOn), yesNo(r.flagSecureOn), r.allowedTotal, r.allowedFull),
+                12f
+            ).apply { setTextColor(hintColor); setLineSpacing(2f, 1f) }
+        )
+
+        body.addView(space(14)); body.addView(divider()); body.addView(space(10))
+        body.addView(label(getString(R.string.t579), 14f, bold = true))
+        body.addView(space(6))
+        addShieldCheckRow(body, getString(R.string.t580), good = !r.usbDebugOn, isOn = r.usbDebugOn)
+        addShieldCheckRow(
+            body,
+            getString(R.string.t581),
+            good = !r.wifiDebugOn,
+            isOn = r.wifiDebugOn,
+            actionText = if (r.serverOnline && r.wifiDebugOn) getString(R.string.t582) else null
+        ) {
+            runShieldServerAction(
+                { SecurityShield.disableWifiDebug(this) },
+                getString(R.string.t600),
+                onRescan
+            )
+        }
+        addShieldCheckRow(
+            body,
+            getString(R.string.t583),
+            good = r.adbVerifierOn,
+            isOn = r.adbVerifierOn,
+            actionText = if (r.serverOnline && !r.adbVerifierOn) getString(R.string.t584) else null
+        ) {
+            runShieldServerAction(
+                { SecurityShield.enableAdbVerifier(this) },
+                getString(R.string.t601),
+                onRescan
+            )
+        }
+        addShieldCheckRow(body, getString(R.string.t585), good = r.privateDnsProtected, isOn = r.privateDnsProtected)
+
+        body.addView(space(14)); body.addView(divider()); body.addView(space(10))
+        body.addView(label(getString(R.string.t586), 14f, bold = true))
+        body.addView(space(6))
+        if (r.thirdPartyAccessibility.isEmpty() && r.thirdPartyNotifListeners.isEmpty()) {
+            body.addView(label(getString(R.string.t587), 12f).apply { setTextColor(hintColor) })
+        } else {
+            r.thirdPartyAccessibility.forEach { pkg ->
+                addShieldPkgRow(body, getString(R.string.t588, pkg)) {
+                    openAppInspector(pkg, pkg) { onRescan() }
+                }
+            }
+            r.thirdPartyNotifListeners.forEach { pkg ->
+                addShieldPkgRow(body, getString(R.string.t589, pkg)) {
+                    openAppInspector(pkg, pkg) { onRescan() }
+                }
+            }
+        }
+
+        if (r.serverOnline) {
+            addShieldOpSection(
+                body = body,
+                title = getString(R.string.t590),
+                pkgs = r.thirdPartyClipboardPkgs,
+                actionLabel = getString(R.string.t591)
+            ) { pkg ->
+                runShieldServerAction(
+                    { SecurityShield.denyClipboard(this, pkg) },
+                    getString(R.string.t592, pkg),
+                    onRescan
+                )
+            }
+            addShieldOpSection(
+                body = body,
+                title = getString(R.string.t593),
+                pkgs = r.thirdPartyInstallerPkgs,
+                actionLabel = getString(R.string.t591)
+            ) { pkg ->
+                runShieldServerAction(
+                    { SecurityShield.revokeInstallPackages(this, pkg) },
+                    getString(R.string.t594, pkg),
+                    onRescan
+                )
+            }
+        }
+
+        if (r.riskyHardwareApps.isNotEmpty()) {
+            body.addView(space(14)); body.addView(divider()); body.addView(space(10))
+            body.addView(label(getString(R.string.t596), 14f, bold = true))
+            body.addView(space(6))
+            r.riskyHardwareApps.forEach { item ->
+                val badges = item.risks.joinToString(", ") { risk ->
+                    getString(
+                        when (risk) {
+                            SecurityShield.RiskKind.CAMERA -> R.string.t605
+                            SecurityShield.RiskKind.MIC -> R.string.t606
+                            SecurityShield.RiskKind.GPS -> R.string.t607
+                            SecurityShield.RiskKind.SMS -> R.string.t608
+                        }
+                    )
+                }
+                addShieldPkgRow(body, "${item.label} · $badges") {
+                    openAppInspector(item.pkg, item.label) { onRescan() }
+                }
+            }
+        }
+
+        body.addView(space(16)); body.addView(divider()); body.addView(space(14))
+        body.addView(button(getString(R.string.t528), outlined = true) { onRescan() })
+        body.addView(space(8))
+        body.addView(
+            button(getString(R.string.t597)) {
+                MaterialAlertDialogBuilder(this)
+                    .setTitle(getString(R.string.t597))
+                    .setMessage(getString(R.string.t598, r.allowedTotal))
+                    .setNegativeButton(getString(R.string.t116), null)
+                    .setPositiveButton(getString(R.string.t372)) { _, _ ->
+                        Thread {
+                            val revoked = SecurityShield.panicLockdown(this)
+                            ServerTileService.requestRefresh(this)
+                            runOnUiThread {
+                                setStatus(false)
+                                refreshApps()
+                                snack(getString(R.string.t599, revoked))
+                                sheet.dismiss()
+                            }
+                        }.start()
+                    }
+                    .secureShow()
+            }
+        )
+    }
+
+    private fun addShieldCheckRow(
+        container: LinearLayout,
+        title: String,
+        good: Boolean,
+        isOn: Boolean,
+        actionText: String? = null,
+        onAction: () -> Unit = {}
+    ) {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 4.dp, 0, 4.dp)
+        }
+        val stateWord = getString(if (isOn) R.string.t565 else R.string.t566)
+        val mark = if (good) "✓" else "!"
+        row.addView(
+            label("$mark  $title ($stateWord)", 13f).apply {
+                setTextColor(if (good) hintColor else themeColor(MR.attr.colorError))
+            },
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        if (actionText != null) {
+            row.addView(chipButton(actionText) { onAction() })
+        }
+        container.addView(row)
+    }
+
+    private fun addShieldOpSection(
+        body: LinearLayout,
+        title: String,
+        pkgs: List<String>,
+        actionLabel: String,
+        onPkgAction: (String) -> Unit
+    ) {
+        body.addView(space(14)); body.addView(divider()); body.addView(space(10))
+        body.addView(label(title, 14f, bold = true))
+        body.addView(space(6))
+        if (pkgs.isEmpty()) {
+            body.addView(label(getString(R.string.t595), 12f).apply { setTextColor(hintColor) })
+            return
+        }
+        pkgs.take(10).forEach { pkg ->
+            val r = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, 4.dp, 0, 4.dp)
+            }
+            r.addView(
+                label(pkg, 12f).apply {
+                    appTypeface(400, code = true)
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.END
+                    isClickable = true
+                    setOnClickListener { openAppInspector(pkg, pkg) }
+                },
+                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    .apply { marginEnd = 8.dp }
+            )
+            r.addView(chipButton(actionLabel) { onPkgAction(pkg) })
+            body.addView(r)
+        }
+    }
+
+    private fun addShieldPkgRow(container: LinearLayout, text: String, onClick: () -> Unit) {
+        container.addView(
+            label("$text  ❯", 12f).apply {
+                setTextColor(themeColor(MR.attr.colorPrimary))
+                setPadding(0, 6.dp, 0, 6.dp)
+                isClickable = true
+                setOnClickListener { onClick() }
+            }
+        )
+    }
+
+    private fun runShieldServerAction(action: () -> Boolean, okMsg: String, onSuccess: () -> Unit) {
+        Thread {
+            val ok = action()
+            AccessStore.log(this, "shield: $okMsg ok=$ok")
+            runOnUiThread {
+                snack(if (ok) okMsg else getString(R.string.t495), error = !ok)
+                if (ok) onSuccess()
+            }
+        }.start()
+    }
+
+    private fun showReportDialog(text: String) {
+        showMonospaceTextDialog(getString(R.string.t423), text)
     }
 
     private fun maybeConfirmAllow(app: AccessStore.App, onDone: () -> Unit = {}) {

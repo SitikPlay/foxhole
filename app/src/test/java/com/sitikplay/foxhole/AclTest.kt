@@ -44,4 +44,22 @@ class AclTest {
         assertEquals(AclLevel.FULL, Acl.classify("Grant com.example.app x"))
         assertEquals(AclLevel.READ, Acl.classify("   ping   "))
     }
+
+    @Test
+    fun sensitiveSettingsAndPrivilegesRequireFull() {
+        assertEquals(AclLevel.FULL, Acl.classify("putsetting secure enabled_accessibility_services com.evil/.Svc"))
+        assertEquals(AclLevel.FULL, Acl.classify("putsetting global adb_wifi_enabled 1"))
+        assertEquals(AclLevel.FULL, Acl.classify("putsetting global private_dns_mode hostname"))
+        assertEquals(AclLevel.FULL, Acl.classify("grant com.evil.app android.permission.WRITE_SECURE_SETTINGS"))
+        assertEquals(AclLevel.FULL, Acl.classify("grant com.evil.app android.permission.DUMP"))
+        assertEquals(AclLevel.FULL, Acl.classify("appop com.evil.app READ_CLIPBOARD allow"))
+    }
+
+    @Test
+    fun targetsSelfPackageDetectsSelfAttacks() {
+        assertEquals(true, Acl.targetsSelfPackage("pm uninstall com.sitikplay.foxhole", "com.sitikplay.foxhole"))
+        assertEquals(true, Acl.targetsSelfPackage("am force-stop com.sitikplay.foxhole", "com.sitikplay.foxhole"))
+        assertEquals(true, Acl.targetsSelfPackage("rm -rf /data/data/com.sitikplay.foxhole", "com.sitikplay.foxhole"))
+        assertEquals(false, Acl.targetsSelfPackage("pm uninstall com.other.app", "com.sitikplay.foxhole"))
+    }
 }

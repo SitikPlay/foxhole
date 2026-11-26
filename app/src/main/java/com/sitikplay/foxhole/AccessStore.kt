@@ -177,6 +177,15 @@ object AccessStore {
         log(ctx, ctx.getString(R.string.t323, app.pkg))
     }
 
+    /** Immediately revokes all allowed and pending callers (used by Panic Lockdown). */
+    @Synchronized
+    fun revokeAll(ctx: Context): Int {
+        val count = allowed(ctx).size
+        prefs(ctx).edit().remove(ALLOWED).remove(PENDING).apply()
+        log(ctx, "PANIC LOCKDOWN: revoked=$count")
+        return count
+    }
+
     @Synchronized
     fun log(ctx: Context, line: String) {
         val time = SimpleDateFormat("dd.MM HH:mm:ss", Locale.getDefault()).format(Date())

@@ -99,6 +99,11 @@ object DangerApprovals {
         save(ctx, all(ctx).filterNot { it.uid == uid && it.cmdHash == cmdHash })
     }
 
+    @Synchronized
+    fun clearAll(ctx: Context) {
+        prefs(ctx).edit().remove(KEY).apply()
+    }
+
     // Атомарное «проверить-и-съесть» одобренного подтверждения. Раньше два
     // параллельных одинаковых запроса оба успевали увидеть APPROVED до
     // consume() и выполнялись дважды. С учётом TTL — устаревшее одобрение

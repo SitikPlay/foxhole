@@ -194,4 +194,15 @@ class DangerousCmdTest {
         assertNull(kind("input tap 100 100"))
         assertNull(kind("screencap -p /sdcard/Download/shot.png"))
     }
+
+    @Test
+    fun obfuscationAndExpandedDangerCommandsDetected() {
+        assertEquals(DangerousCmd.DangerKind.UNINSTALL, kind("p\\m uninstall com.example"))
+        assertEquals(DangerousCmd.DangerKind.UNINSTALL, kind("p\"\"m uninstall com.example"))
+        assertEquals(DangerousCmd.DangerKind.FILE_DESTROY, kind("/system/bin/rm -rf /sdcard/x"))
+        assertEquals(DangerousCmd.DangerKind.FILE_DESTROY, kind("toybox rm -rf /sdcard/x"))
+        assertEquals(DangerousCmd.DangerKind.FILE_DESTROY, kind("find /sdcard/tmp -delete"))
+        assertEquals(DangerousCmd.DangerKind.SYSTEM_CHANGE, kind("device_config put activity_manager max_phantom_processes 99"))
+        assertEquals(DangerousCmd.DangerKind.REBOOT, kind("svc power shutdown"))
+    }
 }

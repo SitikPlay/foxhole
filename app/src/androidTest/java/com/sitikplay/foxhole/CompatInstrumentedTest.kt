@@ -41,4 +41,12 @@ class CompatInstrumentedTest {
         assertTrue(details.versionName.startsWith("1.4.0"))
         assertTrue(details.permissions.isNotEmpty())
     }
+
+    @Test
+    fun securityShieldScanWorksOnDevice() {
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val report = SecurityShield.scan(ctx)
+        assertTrue(report.score in 0..100)
+        assertTrue(report.allowedTotal >= 0)
+    }
 }

@@ -59,4 +59,18 @@ class AppInspectorTest {
             AppInspector.parseApkPaths(raw)
         )
     }
+
+    @Test
+    fun logcatCmdAndEmptyGrepResultHandledCleanly() {
+        assertEquals(
+            "logcat -d -t 80 --pid=1234",
+            AppInspector.buildLogcatCmd("com.example.app", "1234")
+        )
+        assertEquals(
+            "logcat -d -t 500 | grep -F com.example.app | tail -n 80 || true",
+            AppInspector.buildLogcatCmd("com.example.app", null)
+        )
+        assertEquals("", AppInspector.parseLogcatResult("ERR code=1"))
+        assertEquals("line1", AppInspector.parseLogcatResult("OK line1"))
+    }
 }

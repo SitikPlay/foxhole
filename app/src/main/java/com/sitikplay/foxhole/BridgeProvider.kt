@@ -102,6 +102,11 @@ class BridgeProvider : ContentProvider() {
                 return fail("ERR операция запрещена")
             }
 
+            if (Acl.targetsSelfPackage(cmd, ctx.packageName)) {
+                AccessStore.log(ctx, "$pkg ОТКАЗ (самозащита Foxhole): ${SecretMask.mask(cmd)}")
+                return fail(ctx.getString(R.string.t609))
+            }
+
             val need = Acl.classify(cmd)
             val have = AccessStore.level(ctx, uid)
             if (need == AclLevel.PERMISSIONS && have == AclLevel.READ ||
@@ -113,7 +118,7 @@ class BridgeProvider : ContentProvider() {
                 return fail("ERR требуется уровень доступа ${need.label} (у вас: ${have.label})")
             }
 
-            if (have == AclLevel.FULL) {
+            if (have != AclLevel.READ) {
                 val danger = DangerousCmd.analyze(cmd)
                 if (danger != null) {
                     val denied = confirmDanger(ctx, uid, pkg, cmd, danger)

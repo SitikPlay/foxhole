@@ -215,4 +215,27 @@ object AppInspector {
         val cmd = if (freeze) UninstallCommands.freezeCmd(pkg) else UninstallCommands.unfreezeCmd(pkg)
         return ServerClient.request(ctx, cmd).startsWith("OK")
     }
+
+    internal fun buildLogcatCmd(pkg: String, pid: String?): String {
+        val cleanPid = pid?.takeIf { it.all(Char::isDigit) && it.isNotEmpty() }
+        return if (cleanPid != null) {
+            "logcat -d -t 80 --pid=$cleanPid"
+        } else {
+            "logcat -d -t 500 | grep -F $pkg | tail -n 80 || true"
+        }
+    }
+
+    internal fun parseLogcatResult(res: String): String {
+        val trimmed = res.trim()
+        return when {
+            trimmed.startsWith("OK") -> trimmed.removePrefix("OK").trim()
+            trimmed == "ERR code=1" -> ""
+            else -> res
+        }
+    }
+
+    fun readLogcat(ctx: Context, pkg: String, pid: String?): String {
+        if (!isValidPackage(pkg)) return ""
+        return parseLogcatResult(ServerClient.request(ctx, buildLogcatCmd(pkg, pid)))
+    }
 }
