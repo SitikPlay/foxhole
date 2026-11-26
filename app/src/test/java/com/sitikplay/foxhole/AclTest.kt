@@ -60,6 +60,11 @@ class AclTest {
         assertEquals(true, Acl.targetsSelfPackage("pm uninstall com.sitikplay.foxhole", "com.sitikplay.foxhole"))
         assertEquals(true, Acl.targetsSelfPackage("am force-stop com.sitikplay.foxhole", "com.sitikplay.foxhole"))
         assertEquals(true, Acl.targetsSelfPackage("rm -rf /data/data/com.sitikplay.foxhole", "com.sitikplay.foxhole"))
+        assertEquals(true, Acl.targetsSelfPackage("cmd appops set com.sitikplay.foxhole RUN_ANY_IN_BACKGROUND ignore", "com.sitikplay.foxhole"))
+        assertEquals(true, Acl.targetsSelfPackage("cat /data/user/0/com.sitikplay.foxhole/shared_prefs/x.xml", "com.sitikplay.foxhole"))
+        assertEquals(true, Acl.targetsSelfPackage("cat /data/user_de/0/com.sitikplay.foxhole/files/y", "com.sitikplay.foxhole"))
+        assertEquals(true, Acl.targetsSelfPackage("/system/bin/pm dis''able-user --user 0 com.sitikplay.foxhole", "com.sitikplay.foxhole"))
+        assertEquals(false, Acl.targetsSelfPackage("pm path com.sitikplay.foxhole", "com.sitikplay.foxhole"))
         assertEquals(false, Acl.targetsSelfPackage("pm uninstall com.other.app", "com.sitikplay.foxhole"))
     }
 }

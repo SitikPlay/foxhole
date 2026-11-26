@@ -63,5 +63,34 @@ class SecurityShieldTest {
             installerCount = 4
         )
         assertTrue("Expected degraded score under 50, got $risky", risky in 0..49)
+        val clampedHigh = SecurityShield.computeScore(
+            confirmDeviceOn = true,
+            flagSecureOn = true,
+            allowedFullCount = 0,
+            usbDebugOn = false,
+            wifiDebugOn = false,
+            adbVerifierOn = true,
+            privateDnsProtected = true,
+            a11yCount = 0,
+            notifListenerCount = 0,
+            clipboardCount = 0,
+            installerCount = 0
+        )
+        assertEquals(100, clampedHigh)
+
+        val clampedLow = SecurityShield.computeScore(
+            confirmDeviceOn = false,
+            flagSecureOn = false,
+            allowedFullCount = 10,
+            usbDebugOn = true,
+            wifiDebugOn = true,
+            adbVerifierOn = false,
+            privateDnsProtected = false,
+            a11yCount = 10,
+            notifListenerCount = 10,
+            clipboardCount = 20,
+            installerCount = 20
+        )
+        assertEquals(0, clampedLow)
     }
 }

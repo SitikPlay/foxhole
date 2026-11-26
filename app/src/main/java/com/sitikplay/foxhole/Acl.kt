@@ -59,7 +59,7 @@ object Acl {
     )
 
     private val SELF_MUTATING_WORDS = Regex(
-        "(?i)\\b(uninstall|disable(-user)?|clear|suspend|hide|revoke|appop|force-stop|kill|crash|rm|mv|dd|truncate|chmod|chown|eval)\\b"
+        "(?i)\\b(uninstall|disable(-user)?|clear|suspend|hide|revoke|appops?|force-stop|kill|crash|rm|mv|dd|truncate|chmod|chown|eval)\\b"
     )
 
     fun classify(cmd: String): AclLevel {
@@ -93,8 +93,11 @@ object Acl {
         val lowCmd = DangerousCmd.normalizeObfuscation(cmd).lowercase()
         val lowSelf = selfPkg.lowercase()
         if (!lowCmd.contains(lowSelf)) return false
+        val escapedSelf = Regex.escape(lowSelf)
+        val userDataPath = Regex("/data/user(?:_de)?/\\d+/$escapedSelf(?:/|\\b)")
         return SELF_MUTATING_WORDS.containsMatchIn(lowCmd) ||
             lowCmd.contains("/data/data/$lowSelf") ||
+            userDataPath.containsMatchIn(lowCmd) ||
             lowCmd.contains("/android/data/$lowSelf") ||
             lowCmd.contains(">")
     }

@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.os.Build
 import android.provider.Settings as SysSettings
 
 /**
@@ -239,11 +238,7 @@ object SecurityShield {
         val revoked = AccessStore.revokeAll(ctx)
         DangerApprovals.clearAll(ctx)
         val boot = runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                SysSettings.Global.getInt(ctx.contentResolver, SysSettings.Global.BOOT_COUNT, -1)
-            } else {
-                -1
-            }
+            SysSettings.Global.getInt(ctx.contentResolver, SysSettings.Global.BOOT_COUNT, -1)
         }.getOrDefault(-1)
         if (boot >= 0) Settings.setStoppedBootCount(ctx, boot)
         ServerClient.request(ctx, "stop")
