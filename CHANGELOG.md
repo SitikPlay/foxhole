@@ -3,6 +3,37 @@
 Все заметные изменения проекта. Формат — [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версии — [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.4.0] — 2026-11-26 — Security Shield & Telemetry
+
+Крупное обновление функциональности и безопасности.
+
+### Добавлено
+
+- **Щит безопасности и приватности (`SecurityShield.kt`)**:
+  - Живой аудит устройства и вычисление **Индекса защиты (0–100)**: проверка контура Foxhole (`confirm_device`, `FLAG_SECURE`, активные клиентские доступы и `FULL`), системных флагов (`adb_enabled`, `adb_wifi_enabled`, проверка ADB-установок, Private DNS), сторонних служб Accessibility и Notification Listeners, AppOps-прав `READ_CLIPBOARD` и `REQUEST_INSTALL_PACKAGES`, а также критичных runtime-разрешений (камера, микрофон, геолокация, SMS) с переходом в инспектор пакета и отзывами в один тап.
+  - **Panic Lockdown** — экстренный сброс в один клик: мгновенно отзывает доступы всех клиентских приложений (`AccessStore.revokeAll`), очищает отложенные опасные запросы (`DangerApprovals.clearAll`), сбрасывает серверный токен, блокирует фоновый автоперезапуск на текущий сеанс загрузки и останавливает сервер.
+- **Монитор системы (`SystemMonitor.kt`)**: экран телеметрии через `uid 2000` (заряд, температура и напряжение батареи, ОЗУ, диск `/data`, аптайм, топ процессов по RSS с принудительной остановкой сторонних пакетов).
+- **Инспектор приложений и просмотр Logcat (`AppInspector.kt`)**: детальная карточка любого пакета (пути APK, UID, targetSdk, статус процесса, ограничение фона `RUN_ANY_IN_BACKGROUND`, переключение разрешений и AppOps), а также диалог **«Логи (Logcat)»** по `--pid` или фильтром по пакету.
+- **Заморозка приложений (`UninstallCommands.kt`)**: отключение и включение пакетов (`pm disable-user --user 0` / `pm enable`) без потери данных, с бейджем заморозки в списке.
+- **Быстрые твики системы 2.0 (`SystemTweaks.kt`)**: анимации, пресеты Private DNS (Авто / AdGuard / Cloudflare / Выкл), безопасное изменение DPI (`240–720`), отключение Phantom Process Killer, показ касаний, не выключать экран при зарядке и очистка кэша.
+- **Профили команд (`CommandProfiles.kt`) и Терминал 2.0 (`ConsoleSizing.kt`)**: готовые однотапные шаблоны (`freeze`, `unfreeze`, `force-stop`, `bg-restrict`, `usage-access`, `write-secure`, `apk-path`), быстрые чипы в терминале и динамическая высота поля вывода (компактный старт от `48.dp` с плавным ростом до потолка `300.dp` и внутренней прокруткой).
+- **Wi-Fi TLS-фолбэк, фоновый Watchdog и OEM-доктор (`Discover.kt`, `WatchdogWorker.kt`, `OemCompat.kt`, `DeviceReport.kt`)**: прямое сканирование эфемерных TLS-портов при сломанном mDNS (без конфликтующего `multicast lock`), периодический воркер `WorkManager` для поддержания сервера, точное определение MIUI/HyperOS/One UI/ColorOS/MagicOS/Funtouch/Nothing/кастомных AOSP-сборок (`crDroid`, `Lineage`, `custom_*`) и переходы в OEM-настройки батареи.
+- **Локализация**: переводы всех новых экранов и сообщений безопасности на все 7 языков (`ru`, `en`, `es`, `pt`, `zh`, `ar`, `hi`).
+
+### Безопасность
+
+- **Защита токена и лога запуска (`ServerScript.kt`, `Server.kt`)**: `/data/local/tmp/foxhole.log` создаётся с `umask 077` и правами `0600` (вместо world-writable `0666`); токен передаётся через переменную окружения `FOXHOLE_TOK` вместо аргументов `app_process`, сбрасывается после старта, а `foxhole.start.token` удаляется до запуска демона.
+- **Закрытие эскалации привилегий в ACL и самозащита (`Acl.kt`, `BridgeProvider.kt`)**:
+  - `Acl.targetsSelfPackage` блокирует сторонним клиентам изменение, отзыв прав, остановку (`stop`), `cmd appops` и доступ к каталогам Foxhole (`/data/data/...`, `/data/user/...`, `/data/user_de/...`, `/android/data/...`).
+  - Критичные настройки `putsetting` (`enabled_accessibility_services`, `adb_enabled`, `adb_wifi_enabled`, `private_dns_*`, `http_proxy`, `package_verifier_enable` и др.) и привилегированные права/AppOps (`WRITE_SECURE_SETTINGS`, `DUMP`, `READ_LOGS`, `REQUEST_INSTALL_PACKAGES`, `READ_CLIPBOARD`, `SYSTEM_ALERT_WINDOW` и др.) переведены на уровень `FULL`.
+  - Анализ опасных команд `DangerousCmd.analyze` теперь выполняется и для уровня `PERMISSIONS` (раньше проверялся только `FULL`), закрыт пропуск на `PERMISSIONS`.
+- **Нормализация обфускации команд (`DangerousCmd.kt`)**: очистка префиксов `/system/bin/`, обёрток `busybox`/`toybox`/`command`/`exec`, кавычек/экранирования символов и дополнительные правила для `find -delete`, `truncate`, `device_config`, `setprop`, `eval`, `svc power`, `cmd package`.
+
+### Исправлено
+
+- **Проверка обновлений (`UpdateChecker.kt`)**: фильтр релизов теперь корректно игнорирует теги компаньона `foxhole-adb` (`adb-v*`).
+- **Логи остановленных приложений (`AppInspector.readLogcat`)**: пустой результат `grep` при отсутствии свежих записей корректно возвращается как пустой отчёт без `ERR code=1`.
+
 ## [1.3.2] — 2026-11-18
 
 Мини-обновление: встроенная проверка обновлений с GitHub Releases.
