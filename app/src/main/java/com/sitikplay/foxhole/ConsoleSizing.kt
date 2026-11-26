@@ -1,18 +1,21 @@
 package com.sitikplay.foxhole
 
 /**
- * Расчёт высоты консоли терминала.
+ * Расчёт динамической высоты консоли терминала.
  *
- * Консоль начинается с прежней базовой высоты и по мере накопления логов
- * растёт под объём вывода, но не выше заданной доли высоты экрана;
- * дальше работает внутренняя прокрутка, как раньше.
+ * Изначально консоль компактна по размеру содержимого и плавно растёт
+ * по мере появления вывода, упираясь в заранее заданный потолок (300.dp);
+ * дальше работает внутренняя прокрутка.
  */
 object ConsoleSizing {
 
-    /** Базовая (минимальная) высота консоли в dp — прежний фиксированный размер 300.dp. */
-    const val MIN_HEIGHT_DP = 300
+    /** Минимальная высота компактной пустой консоли в dp. */
+    const val MIN_HEIGHT_DP = 48
 
-    /** Доля высоты экрана, выше которой консоль не растёт (иначе страница станет нечитаемой). */
+    /** Максимальная высота консоли в dp — заранее заданный лимит роста. */
+    const val MAX_HEIGHT_DP = 300
+
+    /** На очень компактных экранах дополнительно ограничиваем потолок долей экрана. */
     const val MAX_SCREEN_FRACTION = 0.65f
 
     /**
@@ -22,11 +25,11 @@ object ConsoleSizing {
      * @param screenHeightDp высота экрана в dp
      */
     fun heightDp(contentHeightDp: Int, screenHeightDp: Int): Int {
-        // Потолок роста: доля экрана, но не меньше базовой высоты,
-        // чтобы на очень низких экранах формула не схлопывала консоль.
-        val max = maxOf(MIN_HEIGHT_DP, (screenHeightDp * MAX_SCREEN_FRACTION).toInt())
-        // Короткий вывод не растягивает консоль выше базовой высоты,
-        // длинный растёт ровно под свой размер, но не выше потолка.
-        return contentHeightDp.coerceIn(MIN_HEIGHT_DP, max)
+        val ceiling = if (screenHeightDp > 0) {
+            minOf(MAX_HEIGHT_DP, maxOf(MIN_HEIGHT_DP, (screenHeightDp * MAX_SCREEN_FRACTION).toInt()))
+        } else {
+            MAX_HEIGHT_DP
+        }
+        return contentHeightDp.coerceIn(MIN_HEIGHT_DP, ceiling)
     }
 }

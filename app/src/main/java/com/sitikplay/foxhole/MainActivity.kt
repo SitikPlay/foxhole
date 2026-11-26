@@ -427,8 +427,18 @@ class MainActivity : AppCompatActivity() {
                     cornerRadius = 14.dp.toFloat()
                 }
             }
-            val scroll = android.widget.ScrollView(this@MainActivity).apply {
+            val scroll = object : android.widget.ScrollView(this@MainActivity) {
+                override fun onInterceptTouchEvent(ev: android.view.MotionEvent): Boolean {
+                    if (canScrollVertically(-1) || canScrollVertically(1)) {
+                        val disallow = ev.actionMasked != android.view.MotionEvent.ACTION_UP &&
+                            ev.actionMasked != android.view.MotionEvent.ACTION_CANCEL
+                        parent?.requestDisallowInterceptTouchEvent(disallow)
+                    }
+                    return super.onInterceptTouchEvent(ev)
+                }
+            }.apply {
                 isVerticalScrollBarEnabled = true
+                isFillViewport = true
                 addView(
                     out,
                     ViewGroup.LayoutParams(
@@ -442,9 +452,10 @@ class MainActivity : AppCompatActivity() {
                 scroll,
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    300.dp
+                    ViewGroup.LayoutParams.WRAP_CONTENT
                 )
             )
+            scroll.post { updateConsoleHeight() }
         }
         renderHistory()
 
@@ -2861,19 +2872,18 @@ class MainActivity : AppCompatActivity() {
         updateConsoleHeight()
     }
 
-    // Пересчитывает высоту консоли: от базового размера она растёт по объёму логов,
-    // выше доли экрана не поднимается — дальше работает внутренняя прокрутка.
+    // Пересчитывает высоту консоли: от компактного размера она растёт под объём вывода
+    // вплоть до потолка (300.dp), дальше работает внутренняя прокрутка.
     private fun updateConsoleHeight() {
         val scroll = terminalScroll ?: return
         val lp = scroll.layoutParams as? LinearLayout.LayoutParams ?: return
         val density = resources.displayMetrics.density
-        // Высоту лога берём прямым измерением TextView, а не из getHeight() или
-        // слушателей разметки: сразу после setText/очистки layout ещё не выполнен,
-        // а правка layout-параметров из колбэка разметки не перепланирует ScrollView.
-        val widthSpec = android.view.View.MeasureSpec.makeMeasureSpec(
-            if (scroll.width > 0) scroll.width else resources.displayMetrics.widthPixels,
-            android.view.View.MeasureSpec.AT_MOST
-        )
+        // Высоту лога берём прямым измерением TextView при фактической ширине контейнера.
+        val widthSpec = if (scroll.width > 0) {
+            android.view.View.MeasureSpec.makeMeasureSpec(scroll.width, android.view.View.MeasureSpec.EXACTLY)
+        } else {
+            android.view.View.MeasureSpec.makeMeasureSpec(resources.displayMetrics.widthPixels, android.view.View.MeasureSpec.AT_MOST)
+        }
         out.measure(widthSpec, android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED))
         // measuredHeight уже включает паддинги — это полный размер лога.
         val contentDp = (out.measuredHeight / density + 0.5f).toInt()
