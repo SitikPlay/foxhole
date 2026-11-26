@@ -105,4 +105,14 @@ class CommandProfilesTest {
             )
         )
     }
+
+    @Test
+    fun readyPresetsComposeCleanly() {
+        assertTrue(CommandProfiles.PRESETS.isNotEmpty())
+        CommandProfiles.PRESETS.forEach { p ->
+            assertFalse(CommandProfiles.isUnsafeValue(p.template))
+            val filled = CommandProfiles.compose(p.template, mapOf("package" to "com.example.app"))
+            assertTrue("preset ${p.name} failed compose", filled != null && !filled.contains("{"))
+        }
+    }
 }

@@ -31,4 +31,14 @@ class CompatInstrumentedTest {
         assertTrue(report.contains("1.4.0"))
         assertFalse(report.isBlank())
     }
+
+    @Test
+    fun appInspectorReadsSelfPackageOnDevice() {
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val details = AppInspector.inspect(ctx, ctx.packageName)
+        assertNotNull(details)
+        assertTrue(details!!.uid > 0)
+        assertTrue(details.versionName.startsWith("1.4.0"))
+        assertTrue(details.permissions.isNotEmpty())
+    }
 }

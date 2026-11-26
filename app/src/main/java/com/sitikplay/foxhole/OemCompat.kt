@@ -17,6 +17,8 @@ object OemCompat {
         ONEUI("Samsung One UI"),
         COLOROS("ColorOS / Realme UI / OxygenOS"),
         MAGIC("Honor MagicOS / Huawei EMUI"),
+        FUNTOUCH("Vivo Funtouch / OriginOS"),
+        NOTHING("Nothing OS"),
         AOSP("Android / Pixel / AOSP")
     }
 
@@ -35,7 +37,9 @@ object OemCompat {
         hyperOsVersion: String?,
         sepVersion: String?,
         oplusVersion: String? = null,
-        emuiVersion: String? = null
+        emuiVersion: String? = null,
+        vivoVersion: String? = null,
+        nothingVersion: String? = null
     ): RomFamily {
         val man = manufacturer.trim().lowercase()
         val br = brand.trim().lowercase()
@@ -56,6 +60,16 @@ object OemCompat {
         ) {
             return RomFamily.COLOROS
         }
+        if (!vivoVersion.isNullOrBlank() ||
+            (!isCustomAosp && (man in setOf("vivo", "iqoo") || br in setOf("vivo", "iqoo")))
+        ) {
+            return RomFamily.FUNTOUCH
+        }
+        if (!nothingVersion.isNullOrBlank() ||
+            (!isCustomAosp && (man == "nothing" || br == "nothing"))
+        ) {
+            return RomFamily.NOTHING
+        }
         if (!emuiVersion.isNullOrBlank() ||
             (!isCustomAosp && (man in setOf("huawei", "honor") || br in setOf("huawei", "honor")))
         ) {
@@ -72,7 +86,9 @@ object OemCompat {
         hyperOsVersion = sysProp("ro.mi.os.version.name"),
         sepVersion = sysProp("ro.build.version.sep"),
         oplusVersion = sysProp("ro.build.version.oplusrom") ?: sysProp("ro.build.version.realmeui"),
-        emuiVersion = sysProp("ro.build.version.emui") ?: sysProp("ro.build.version.magic")
+        emuiVersion = sysProp("ro.build.version.emui") ?: sysProp("ro.build.version.magic"),
+        vivoVersion = sysProp("ro.vivo.os.version") ?: sysProp("ro.vivo.product.version"),
+        nothingVersion = sysProp("ro.nothing.version.id")
     )
 
     private fun sysProp(key: String): String? = try {
@@ -126,6 +142,12 @@ object OemCompat {
         ),
         Intent().setComponent(
             ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity")
+        ),
+        Intent().setComponent(
+            ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity")
+        ),
+        Intent().setComponent(
+            ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity")
         )
     )
 
@@ -149,6 +171,8 @@ object OemCompat {
     fun adviceRes(rom: RomFamily): Int = when (rom) {
         RomFamily.HYPEROS, RomFamily.MIUI -> R.string.t483
         RomFamily.ONEUI -> R.string.t484
+        RomFamily.FUNTOUCH -> R.string.t571
+        RomFamily.NOTHING -> R.string.t572
         RomFamily.COLOROS, RomFamily.MAGIC, RomFamily.AOSP -> R.string.t485
     }
 }

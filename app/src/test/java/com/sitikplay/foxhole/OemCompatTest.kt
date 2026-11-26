@@ -60,4 +60,20 @@ class OemCompatTest {
             OemCompat.classifyRom("Xiaomi", "Redmi", "CP2A.260605.016 custom_sweet", null, null, null)
         )
     }
+
+    @Test
+    fun detectsVivoAndNothingUnlessCustomAosp() {
+        assertEquals(
+            OemCompat.RomFamily.FUNTOUCH,
+            OemCompat.classifyRom("vivo", "vivo", "PD2309", null, null, null)
+        )
+        assertEquals(
+            OemCompat.RomFamily.NOTHING,
+            OemCompat.classifyRom("Nothing", "Nothing", "Nothing OS 2.6", null, null, null)
+        )
+        assertEquals(
+            OemCompat.RomFamily.AOSP,
+            OemCompat.classifyRom("vivo", "vivo", "AP2A.240905.003 custom", null, null, null)
+        )
+    }
 }

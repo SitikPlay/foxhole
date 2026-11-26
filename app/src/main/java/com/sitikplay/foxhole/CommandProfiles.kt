@@ -16,6 +16,18 @@ object CommandProfiles {
         Profile("putsetting", "putsetting {namespace} {key} {value}")
     )
 
+    /** Curated one-tap shell presets beyond the built-in server protocol aliases. */
+    val PRESETS = listOf(
+        Profile("freeze", "pm disable-user --user 0 {package}"),
+        Profile("unfreeze", "pm enable {package}"),
+        Profile("force-stop", "am force-stop {package}"),
+        Profile("bg-restrict", "appop {package} RUN_ANY_IN_BACKGROUND ignore"),
+        Profile("bg-allow", "appop {package} RUN_ANY_IN_BACKGROUND allow"),
+        Profile("usage-access", "appop {package} GET_USAGE_STATS allow"),
+        Profile("write-secure", "grant {package} android.permission.WRITE_SECURE_SETTINGS"),
+        Profile("apk-path", "pm path {package}")
+    )
+
     private const val PREFS = "foxhole_profiles"
     private const val KEY = "custom"
     private const val MAX_CUSTOM = 20

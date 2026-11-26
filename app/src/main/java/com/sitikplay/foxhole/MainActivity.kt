@@ -16,6 +16,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.net.Uri
 import android.text.Editable
 import android.text.InputFilter
@@ -57,6 +58,7 @@ import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.color.DynamicColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.radiobutton.MaterialRadioButton
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
@@ -83,6 +85,7 @@ class MainActivity : AppCompatActivity() {
 
     private var terminalInput: TextInputEditText? = null
     private var terminalExplain: TextView? = null
+    private var terminalTimingLabel: TextView? = null
     private var terminalScroll: android.widget.ScrollView? = null
     private var historyRow: LinearLayout? = null
     private lateinit var appsBox: LinearLayout
@@ -344,6 +347,14 @@ class MainActivity : AppCompatActivity() {
             getString(R.string.t016)
         ).apply {
             addView(space(12))
+            addView(
+                label(getString(R.string.t568), 12f).apply {
+                    setTextColor(hintColor)
+                    setPadding(0, 0, 0, 6.dp)
+                }
+            )
+            addView(terminalSnippetStrip())
+            addView(space(10))
             addView(explainLabel)
             addView(space(8))
             addView(cmdField)
@@ -363,6 +374,7 @@ class MainActivity : AppCompatActivity() {
                     },
                     button(getString(R.string.t018), outlined = true) {
                         out.text = ""
+                        terminalTimingLabel?.visibility = View.GONE
                         // Пересчитываем высоту: после очистки консоль возвращается
                         // к базовому размеру, а не остаётся раздутой от старых логов.
                         updateConsoleHeight()
@@ -375,26 +387,24 @@ class MainActivity : AppCompatActivity() {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = android.view.Gravity.CENTER_VERTICAL
                 addView(label(getString(R.string.t019), 13f, bold = true))
+                val timingView = label("", 11f).apply {
+                    setTextColor(hintColor)
+                    setPadding(10.dp, 0, 0, 0)
+                    visibility = View.GONE
+                }
+                terminalTimingLabel = timingView
+                addView(timingView)
                 addView(
                     View(this@MainActivity),
                     LinearLayout.LayoutParams(0, 1, 1f)
                 )
                 addView(
-                    TextView(this@MainActivity).apply {
-                        text = getString(R.string.t020)
-                        textSize = 13f
-                        appTypeface(500)
-                        setTextColor(themeColor(MR.attr.colorPrimary))
-                        setPadding(12.dp, 6.dp, 4.dp, 6.dp)
-                        setOnClickListener {
-                            val text = out.text?.toString().orEmpty()
-                            if (text.isBlank()) {
-                                snack(getString(R.string.t021), error = true)
-                            } else {
-                                copyToClipboard(text)
-                                snack(getString(R.string.t022))
-                            }
-                        }
+                    consoleHeaderAction(getString(R.string.t529)) { text -> shareText(text) }
+                )
+                addView(
+                    consoleHeaderAction(getString(R.string.t020)) { text ->
+                        copyToClipboard(text)
+                        snack(getString(R.string.t022))
                     }
                 )
             }
@@ -507,79 +517,19 @@ class MainActivity : AppCompatActivity() {
             ).apply { topMargin = 14.dp }
         )
 
-        val profilesEntry = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            isClickable = true
-            background = ripple()
-            setPadding(20.dp, 20.dp, 20.dp, 20.dp)
-        }
-        val profilesTitle = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            addView(label(getString(R.string.t399), 17f, bold = true))
-            addView(
-                label(getString(R.string.t400), 13f).apply {
-                    setTextColor(hintColor)
-                    setPadding(0, 6.dp, 0, 0)
-                    setLineSpacing(3f, 1f)
-                }
+        listOf(
+            homeActionCardContent(getString(R.string.t399), getString(R.string.t400)) { showProfilesSheet() },
+            homeActionCardContent(getString(R.string.t493), getString(R.string.t494)) { openTweaksSheet() },
+            homeActionCardContent(getString(R.string.t516), getString(R.string.t517)) { openMonitorSheet() }
+        ).forEach { entry ->
+            root.addView(
+                cardFor(entry),
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = 14.dp }
             )
         }
-        profilesEntry.addView(
-            profilesTitle,
-            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        )
-        profilesEntry.addView(
-            label("❯", 16f, bold = true).apply {
-                setTextColor(hintColor)
-                setPadding(14.dp, 0, 0, 0)
-            }
-        )
-        profilesEntry.setOnClickListener { showProfilesSheet() }
-        root.addView(
-            cardFor(profilesEntry),
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 14.dp }
-        )
-
-        val tweaksEntry = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            isClickable = true
-            background = ripple()
-            setPadding(20.dp, 20.dp, 20.dp, 20.dp)
-        }
-        val tweaksTitle = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            addView(label(getString(R.string.t493), 17f, bold = true))
-            addView(
-                label(getString(R.string.t494), 13f).apply {
-                    setTextColor(hintColor)
-                    setPadding(0, 6.dp, 0, 0)
-                    setLineSpacing(3f, 1f)
-                }
-            )
-        }
-        tweaksEntry.addView(
-            tweaksTitle,
-            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        )
-        tweaksEntry.addView(
-            label("❯", 16f, bold = true).apply {
-                setTextColor(hintColor)
-                setPadding(14.dp, 0, 0, 0)
-            }
-        )
-        tweaksEntry.setOnClickListener { openTweaksSheet() }
-        root.addView(
-            cardFor(tweaksEntry),
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 14.dp }
-        )
 
         paneRoot = buildUninstallPane()
         paneRoot.visibility = View.GONE
@@ -787,6 +737,10 @@ class MainActivity : AppCompatActivity() {
         tabInstalledContent.addView(space(10))
         val search = field(getString(R.string.t046), InputType.TYPE_CLASS_TEXT)
         tabInstalledContent.addView(search)
+        tabInstalledContent.addView(space(6))
+        tabInstalledContent.addView(
+            label(getString(R.string.t573), 12f).apply { setTextColor(hintColor) }
+        )
         tabInstalledContent.addView(space(8))
         installedBox = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.VERTICAL }
         tabInstalledContent.addView(installedBox)
@@ -1827,7 +1781,15 @@ class MainActivity : AppCompatActivity() {
                 setColor(themeColor(MR.attr.colorSecondaryContainer))
             }
         }
-        row.addView(avatar, LinearLayout.LayoutParams(36.dp, 36.dp))
+        val tapBox = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            isClickable = true
+            isFocusable = true
+            background = ripple()
+            setOnClickListener { openAppInspector(app.pkg, app.label) }
+        }
+        tapBox.addView(avatar, LinearLayout.LayoutParams(36.dp, 36.dp))
 
         val texts = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         texts.addView(
@@ -1844,10 +1806,14 @@ class MainActivity : AppCompatActivity() {
                 setPadding(0, 1.dp, 0, 0)
             }
         )
-        row.addView(
+        tapBox.addView(
             texts,
             LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 .apply { marginStart = 10.dp; marginEnd = 8.dp }
+        )
+        row.addView(
+            tapBox,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         )
 
         val action = if (allowed) {
@@ -1988,7 +1954,20 @@ class MainActivity : AppCompatActivity() {
                 setColor(themeColor(MR.attr.colorSecondaryContainer))
             }
         }
-        row.addView(avatar, LinearLayout.LayoutParams(36.dp, 36.dp))
+        val tapBox = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            isClickable = true
+            isFocusable = true
+            background = ripple()
+            setOnClickListener {
+                openAppInspector(app.pkg, app.label) {
+                    uninstallLoaded = false
+                    loadUninstallApps()
+                }
+            }
+        }
+        tapBox.addView(avatar, LinearLayout.LayoutParams(36.dp, 36.dp))
 
         val texts = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         texts.addView(
@@ -2010,10 +1989,14 @@ class MainActivity : AppCompatActivity() {
                 setPadding(0, 1.dp, 0, 0)
             }
         )
-        row.addView(
+        tapBox.addView(
             texts,
             LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 .apply { marginStart = 10.dp; marginEnd = 8.dp }
+        )
+        row.addView(
+            tapBox,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         )
 
         val checkBox = MaterialCheckBox(this).apply {
@@ -2691,7 +2674,14 @@ class MainActivity : AppCompatActivity() {
         ) {
 
             TerminalHistory.record(this, c)
+            val startedMs = SystemClock.elapsedRealtime()
             bg(c, { ServerClient.request(this, c) }) { res ->
+                val elapsedMs = (SystemClock.elapsedRealtime() - startedMs).coerceAtLeast(1L)
+                val statusWord = if (res.startsWith("OK")) "OK" else "ERR"
+                terminalTimingLabel?.apply {
+                    text = getString(R.string.t569, statusWord, elapsedMs)
+                    visibility = View.VISIBLE
+                }
                 if (ServerClient.isUnavailable(res)) setStatus(false)
 
                 AccessStore.log(
@@ -2787,11 +2777,15 @@ class MainActivity : AppCompatActivity() {
             snack(getString(R.string.t163), error = true)
             return
         }
+        shareText(cmd, getString(R.string.t164))
+    }
+
+    private fun shareText(text: String, chooserTitle: String = getString(R.string.t529)) {
         val send = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, cmd)
+            putExtra(Intent.EXTRA_TEXT, text)
         }
-        startActivity(Intent.createChooser(send, getString(R.string.t164)))
+        startActivity(Intent.createChooser(send, chooserTitle))
     }
 
     private fun copyPcCommand() {
@@ -3077,7 +3071,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showTweaksSheet() {
+    private fun createSheet(title: String, subtitle: String? = null): Pair<BottomSheetDialog, LinearLayout> {
         val sheet = BottomSheetDialog(this)
         if (Settings.flagSecureScreens(this)) {
             sheet.window?.setFlags(
@@ -3089,13 +3083,52 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(24.dp, 24.dp, 24.dp, 32.dp)
         }
-        content.addView(label(getString(R.string.t493), 22f, bold = true))
-        content.addView(
-            label(getString(R.string.t494), 13f)
-                .apply { setTextColor(hintColor); setPadding(0, 4.dp, 0, 0) }
-        )
+        content.addView(label(title, 22f, bold = true))
+        if (!subtitle.isNullOrBlank()) {
+            content.addView(
+                label(subtitle, 13f)
+                    .apply { setTextColor(hintColor); setPadding(0, 4.dp, 0, 0) }
+            )
+        }
         content.addView(space(16))
+        return sheet to content
+    }
 
+    private fun serverTweakSwitch(
+        title: String,
+        initial: Boolean,
+        logTag: String,
+        successMsg: (Boolean) -> String,
+        apply: (Boolean) -> Boolean
+    ): MaterialSwitch {
+        lateinit var sw: MaterialSwitch
+        sw = MaterialSwitch(this).apply {
+            text = title
+            textSize = 14f
+            appTypeface(500)
+            isChecked = initial
+            setOnCheckedChangeListener(object : android.widget.CompoundButton.OnCheckedChangeListener {
+                override fun onCheckedChanged(buttonView: android.widget.CompoundButton, want: Boolean) {
+                    Thread {
+                        val ok = apply(want)
+                        AccessStore.log(this@MainActivity, "tweak $logTag=$want ok=$ok")
+                        runOnUiThread {
+                            if (ok) {
+                                snack(successMsg(want))
+                            } else {
+                                setSwitchQuietly(sw, !want, this)
+                                snack(getString(R.string.t495), error = true)
+                            }
+                        }
+                    }.start()
+                }
+            })
+        }
+        return sw
+    }
+
+    private fun showTweaksSheet() {
+        val (sheet, content) = createSheet(getString(R.string.t493), getString(R.string.t494))
         val statusMsg = label(getString(R.string.t109), 13f).apply { setTextColor(hintColor) }
         content.addView(statusMsg)
         content.addView(space(12))
@@ -3105,7 +3138,6 @@ class MainActivity : AppCompatActivity() {
             visibility = View.GONE
         }
         content.addView(controls)
-
         showSheetWithInsets(sheet, content)
 
         Thread {
@@ -3119,118 +3151,645 @@ class MainActivity : AppCompatActivity() {
                 }
                 statusMsg.visibility = View.GONE
                 controls.visibility = View.VISIBLE
+                populateTweaksControls(controls, state)
+            }
+        }.start()
+    }
 
-                controls.addView(label(getString(R.string.t496), 14f, bold = true))
-                controls.addView(space(6))
-                val animCurrent = label(getString(R.string.t500, state.animScale), 12f).apply {
-                    setTextColor(hintColor)
-                }
-                controls.addView(animCurrent)
-                controls.addView(space(8))
-                val scaleRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-                val scales = listOf(
-                    "0" to R.string.t497,
-                    "0.5" to R.string.t498,
-                    "1" to R.string.t499
+    private fun populateTweaksControls(controls: LinearLayout, state: SystemTweaks.TweaksState) {
+        addTweakAnimationsSection(controls, state.animScale)
+        controls.addView(space(16)); controls.addView(divider()); controls.addView(space(12))
+
+        addTweakDnsSection(controls, state.dnsPreset)
+        state.density?.let { density ->
+            controls.addView(space(16)); controls.addView(divider()); controls.addView(space(12))
+            addTweakDensitySection(controls, density)
+        }
+
+        controls.addView(space(16)); controls.addView(divider()); controls.addView(space(12))
+        controls.addView(
+            serverTweakSwitch(
+                title = getString(R.string.t545),
+                initial = state.showTouchesOn,
+                logTag = "show_touches",
+                successMsg = { want -> getString(R.string.t546, getString(if (want) R.string.t565 else R.string.t566)) },
+                apply = { want -> SystemTweaks.setShowTouches(this, want) }
+            )
+        )
+        controls.addView(space(8))
+        controls.addView(
+            serverTweakSwitch(
+                title = getString(R.string.t504),
+                initial = state.stayAwakeOn,
+                logTag = "stay_awake",
+                successMsg = { want -> getString(R.string.t505, getString(if (want) R.string.t512 else R.string.t513)) },
+                apply = { want -> SystemTweaks.setStayAwake(this, want) }
+            )
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            controls.addView(space(8))
+            controls.addView(
+                serverTweakSwitch(
+                    title = getString(R.string.t547),
+                    initial = state.phantomDisabled,
+                    logTag = "phantom_killer_off",
+                    successMsg = { want -> getString(R.string.t549, getString(if (want) R.string.t512 else R.string.t513)) },
+                    apply = { want -> SystemTweaks.setPhantomKillerDisabled(this, want) }
                 )
-                scales.forEachIndexed { idx, (scaleVal, resId) ->
-                    val b = button(getString(resId), outlined = true) {
+            )
+            controls.addView(
+                label(getString(R.string.t548), 12f).apply {
+                    setTextColor(hintColor)
+                    setPadding(0, 2.dp, 0, 0)
+                    setLineSpacing(2f, 1f)
+                }
+            )
+        }
+
+        controls.addView(space(16)); controls.addView(divider()); controls.addView(space(14))
+        controls.addView(button(getString(R.string.t506), outlined = true) {
+            Thread {
+                val ok = SystemTweaks.trimCaches(this)
+                AccessStore.log(this, "tweak trim-caches ok=$ok")
+                runOnUiThread {
+                    snack(getString(if (ok) R.string.t507 else R.string.t495), error = !ok)
+                }
+            }.start()
+        })
+    }
+
+    private fun addTweakAnimationsSection(controls: LinearLayout, initialScale: String) {
+        controls.addView(label(getString(R.string.t496), 14f, bold = true))
+        controls.addView(space(6))
+        val animCurrent = label(getString(R.string.t500, initialScale), 12f).apply { setTextColor(hintColor) }
+        controls.addView(animCurrent)
+        controls.addView(space(8))
+
+        fun scaleBtn(scaleVal: String, resId: Int) = button(getString(resId), outlined = true) {
+            Thread {
+                val ok = SystemTweaks.setAnimationScale(this, scaleVal)
+                AccessStore.log(this, "tweak anim=$scaleVal ok=$ok")
+                runOnUiThread {
+                    if (ok) {
+                        animCurrent.text = getString(R.string.t500, "${scaleVal}x")
+                        snack(getString(R.string.t500, "${scaleVal}x"))
+                    } else {
+                        snack(getString(R.string.t495), error = true)
+                    }
+                }
+            }.start()
+        }
+        controls.addView(row(scaleBtn("0", R.string.t497), scaleBtn("0.5", R.string.t498)))
+        controls.addView(space(6))
+        controls.addView(row(scaleBtn("1", R.string.t499), scaleBtn("1.5", R.string.t533)))
+    }
+
+    private fun addTweakDnsSection(controls: LinearLayout, initial: SystemTweaks.DnsPreset) {
+        val dnsLabels = mapOf(
+            SystemTweaks.DnsPreset.AUTO to R.string.t535,
+            SystemTweaks.DnsPreset.ADGUARD to R.string.t536,
+            SystemTweaks.DnsPreset.CLOUDFLARE to R.string.t537,
+            SystemTweaks.DnsPreset.OFF to R.string.t538
+        )
+        var current = initial
+        controls.addView(label(getString(R.string.t534), 14f, bold = true))
+        controls.addView(space(4))
+        val statusLabel = label(
+            getString(R.string.t539, getString(dnsLabels.getValue(initial))),
+            12f
+        ).apply { setTextColor(hintColor) }
+        controls.addView(statusLabel)
+        controls.addView(space(8))
+
+        val group = singleToggleGroup()
+        val idByPreset = HashMap<SystemTweaks.DnsPreset, Int>()
+        SystemTweaks.DnsPreset.values().forEach { preset ->
+            val btn = MaterialButton(this, null, MR.attr.materialButtonOutlinedStyle).apply {
+                id = View.generateViewId()
+                text = getString(dnsLabels.getValue(preset))
+                isCheckable = true
+                isAllCaps = false
+                textSize = 12f
+                appTypeface(500)
+            }
+            idByPreset[preset] = btn.id
+            group.addView(btn)
+        }
+        var programmaticCheck = true
+        group.check(idByPreset.getValue(initial))
+        programmaticCheck = false
+
+        group.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (programmaticCheck || !isChecked) return@addOnButtonCheckedListener
+            val target = idByPreset.entries.firstOrNull { it.value == checkedId }?.key ?: return@addOnButtonCheckedListener
+            if (target == current) return@addOnButtonCheckedListener
+            Thread {
+                val ok = SystemTweaks.setDnsPreset(this, target)
+                AccessStore.log(this, "tweak dns=${target.name.lowercase()} ok=$ok")
+                runOnUiThread {
+                    if (ok) {
+                        current = target
+                        val lbl = getString(dnsLabels.getValue(target))
+                        statusLabel.text = getString(R.string.t539, lbl)
+                        snack(getString(R.string.t539, lbl))
+                    } else {
+                        programmaticCheck = true
+                        group.check(idByPreset.getValue(current))
+                        programmaticCheck = false
+                        snack(getString(R.string.t495), error = true)
+                    }
+                }
+            }.start()
+        }
+        val strip = HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(group)
+        }
+        controls.addView(strip)
+    }
+
+    private fun addTweakDensitySection(controls: LinearLayout, initial: SystemTweaks.DensityInfo) {
+        var current = initial
+        controls.addView(label(getString(R.string.t540), 14f, bold = true))
+        controls.addView(space(4))
+        val densityLabel = label(
+            getString(R.string.t541, current.effective, current.physical),
+            12f
+        ).apply { setTextColor(hintColor) }
+        controls.addView(densityLabel)
+        controls.addView(space(8))
+
+        fun applyDpi(targetDpi: Int?) {
+            Thread {
+                val ok = if (targetDpi == null) {
+                    SystemTweaks.resetDensity(this)
+                } else {
+                    SystemTweaks.setDensity(this, targetDpi)
+                }
+                val refreshed = SystemTweaks.parseDensity(ServerClient.request(this, "wm density"))
+                AccessStore.log(this, "tweak dpi=${targetDpi ?: "reset"} ok=$ok")
+                runOnUiThread {
+                    if (ok) {
+                        if (refreshed != null) current = refreshed
+                        densityLabel.text = getString(R.string.t541, current.effective, current.physical)
+                        snack(
+                            if (targetDpi == null) getString(R.string.t544)
+                            else getString(R.string.t543, current.effective)
+                        )
+                    } else {
+                        snack(getString(R.string.t495), error = true)
+                    }
+                }
+            }.start()
+        }
+
+        controls.addView(
+            row(
+                button("-40", outlined = true) { applyDpi(current.effective - 40) },
+                button(getString(R.string.t542), outlined = true) { applyDpi(null) },
+                button("+40", outlined = true) { applyDpi(current.effective + 40) }
+            )
+        )
+    }
+
+    private fun openMonitorSheet() {
+        BiometricGate.confirm(
+            this,
+            getString(R.string.t516),
+            getString(R.string.t517)
+        ) {
+            showMonitorSheet()
+        }
+    }
+
+    private fun showMonitorSheet() {
+        val (sheet, content) = createSheet(getString(R.string.t516), getString(R.string.t517))
+        val statusMsg = label(getString(R.string.t109), 13f).apply { setTextColor(hintColor) }
+        content.addView(statusMsg)
+        val body = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+        }
+        content.addView(body)
+        showSheetWithInsets(sheet, content)
+
+        fun loadSnapshot() {
+            statusMsg.text = getString(R.string.t109)
+            statusMsg.setTextColor(hintColor)
+            statusMsg.visibility = View.VISIBLE
+            body.visibility = View.GONE
+            Thread {
+                val snap = SystemMonitor.read(this)
+                runOnUiThread {
+                    if (isFinishing || isDestroyed || !sheet.isShowing) return@runOnUiThread
+                    if (snap == null) {
+                        statusMsg.text = getString(R.string.t495)
+                        statusMsg.setTextColor(themeColor(MR.attr.colorError))
+                        return@runOnUiThread
+                    }
+                    statusMsg.visibility = View.GONE
+                    body.visibility = View.VISIBLE
+                    renderMonitorSnapshot(body, snap, onRefresh = { loadSnapshot() })
+                }
+            }.start()
+        }
+        loadSnapshot()
+    }
+
+    private fun renderMonitorSnapshot(
+        body: LinearLayout,
+        snap: SystemMonitor.MonitorSnapshot,
+        onRefresh: () -> Unit
+    ) {
+        body.removeAllViews()
+        snap.battery?.let { b ->
+            val stateLabel = getString(
+                when (b.state) {
+                    SystemMonitor.ChargeState.CHARGING -> R.string.t530
+                    SystemMonitor.ChargeState.FULL -> R.string.t531
+                    SystemMonitor.ChargeState.DISCHARGING -> R.string.t532
+                }
+            )
+            body.addView(label(getString(R.string.t518), 14f, bold = true))
+            body.addView(space(4))
+            body.addView(
+                label(getString(R.string.t519, b.level, stateLabel, b.tempC, b.voltageMv, b.tech), 13f)
+                    .apply { setTextColor(hintColor) }
+            )
+            body.addView(space(8))
+            body.addView(monitorProgress(b.level))
+            body.addView(space(14))
+        }
+
+        snap.mem?.let { m ->
+            body.addView(label(getString(R.string.t520), 14f, bold = true))
+            body.addView(space(4))
+            body.addView(
+                label(getString(R.string.t521, m.availableMb, m.totalMb, m.usedPercent), 13f)
+                    .apply { setTextColor(hintColor) }
+            )
+            body.addView(space(8))
+            body.addView(monitorProgress(m.usedPercent))
+            body.addView(space(14))
+        }
+
+        snap.storage?.let { s ->
+            body.addView(label(getString(R.string.t522), 14f, bold = true))
+            body.addView(space(4))
+            body.addView(
+                label(getString(R.string.t523, s.availGb, s.totalGb, s.usedPercent), 13f)
+                    .apply { setTextColor(hintColor) }
+            )
+            body.addView(space(8))
+            body.addView(monitorProgress(s.usedPercent))
+            body.addView(space(14))
+        }
+
+        if (snap.uptime.isNotEmpty()) {
+            body.addView(label(getString(R.string.t524), 14f, bold = true))
+            body.addView(space(4))
+            body.addView(label(snap.uptime, 12f).apply {
+                appTypeface(400, code = true)
+                setTextColor(hintColor)
+            })
+            body.addView(space(14))
+        }
+
+        if (snap.procs.isNotEmpty()) {
+            body.addView(divider())
+            body.addView(space(12))
+            body.addView(label(getString(R.string.t525), 14f, bold = true))
+            body.addView(space(8))
+            snap.procs.forEach { proc ->
+                val pRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(0, 6.dp, 0, 6.dp)
+                }
+                val info = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+                info.addView(label(proc.name, 13f).apply {
+                    appTypeface(400, code = true)
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.END
+                })
+                info.addView(label("${proc.rssMb} MB RSS", 11f).apply { setTextColor(hintColor) })
+                pRow.addView(info, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                proc.stoppablePkg?.let { targetPkg ->
+                    pRow.addView(chipButton(getString(R.string.t526)) {
                         Thread {
-                            val ok = SystemTweaks.setAnimationScale(this, scaleVal)
-                            AccessStore.log(this, "tweak anim=$scaleVal ok=$ok")
+                            val ok = AppInspector.forceStop(this, targetPkg)
+                            AccessStore.log(this, "monitor force-stop $targetPkg ok=$ok")
+                            runOnUiThread {
+                                snack(getString(if (ok) R.string.t527 else R.string.t495, targetPkg), error = !ok)
+                                if (ok) onRefresh()
+                            }
+                        }.start()
+                    })
+                }
+                body.addView(pRow)
+            }
+        }
+
+        body.addView(space(16))
+        body.addView(
+            row(
+                button(getString(R.string.t528)) { onRefresh() },
+                button(getString(R.string.t529), outlined = true) {
+                    shareText(SystemMonitor.formatSummary(this, snap))
+                }
+            )
+        )
+    }
+
+    private fun monitorProgress(percent: Int): LinearProgressIndicator =
+        LinearProgressIndicator(this).apply {
+            max = 100
+            progress = percent.coerceIn(0, 100)
+            trackCornerRadius = 4.dp
+            trackThickness = 8.dp
+        }
+
+    private fun openAppInspector(pkg: String, fallbackLabel: String, onMutated: () -> Unit = {}) {
+        val (sheet, content) = createSheet(fallbackLabel, pkg)
+        val statusMsg = label(getString(R.string.t109), 13f).apply { setTextColor(hintColor) }
+        content.addView(statusMsg)
+        val body = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+        }
+        content.addView(body)
+        showSheetWithInsets(sheet, content)
+
+        fun loadDetails() {
+            Thread {
+                val details = AppInspector.inspect(this, pkg)
+                runOnUiThread {
+                    if (isFinishing || isDestroyed || !sheet.isShowing) return@runOnUiThread
+                    if (details == null) {
+                        statusMsg.text = getString(R.string.t111)
+                        statusMsg.setTextColor(themeColor(MR.attr.colorError))
+                        return@runOnUiThread
+                    }
+                    statusMsg.visibility = View.GONE
+                    body.visibility = View.VISIBLE
+                    renderInspectorBody(sheet, body, details, onRefresh = { loadDetails() }, onMutated = onMutated)
+                }
+            }.start()
+        }
+        loadDetails()
+    }
+
+    private fun renderInspectorBody(
+        sheet: BottomSheetDialog,
+        body: LinearLayout,
+        d: AppInspector.Details,
+        onRefresh: () -> Unit,
+        onMutated: () -> Unit
+    ) {
+        body.removeAllViews()
+        body.addView(label(getString(R.string.t551, d.versionName, d.targetSdk, d.uid), 13f))
+        val runState = if (d.pid != null) getString(R.string.t552, d.pid) else getString(R.string.t553)
+        val typeState = getString(if (d.system) R.string.t112 else R.string.t113).trimStart(' ', '·')
+        val frozenSuffix = if (d.disabled) " ${getString(R.string.t488).trimStart()}" else ""
+        body.addView(
+            label("$typeState · $runState$frozenSuffix", 12f).apply {
+                setTextColor(hintColor)
+                setPadding(0, 4.dp, 0, 0)
+            }
+        )
+        if (d.apkPath.isNotEmpty()) {
+            body.addView(
+                label(d.apkPath, 11f).apply {
+                    appTypeface(400, code = true)
+                    setTextColor(hintColor)
+                    setPadding(0, 4.dp, 0, 0)
+                    setTextIsSelectable(true)
+                }
+            )
+        }
+
+        body.addView(space(14))
+        body.addView(
+            row(
+                button(getString(R.string.t557), outlined = true) {
+                    val launch = packageManager.getLaunchIntentForPackage(d.pkg)
+                    if (launch != null) {
+                        runCatching { startActivity(launch) }
+                    } else {
+                        snack(getString(R.string.t097), error = true)
+                    }
+                },
+                button(getString(R.string.t559), outlined = true) {
+                    runCatching {
+                        startActivity(
+                            Intent(
+                                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.parse("package:${d.pkg}")
+                            )
+                        )
+                    }
+                }
+            )
+        )
+        body.addView(space(8))
+        body.addView(
+            row(
+                button(getString(R.string.t560), outlined = true) {
+                    copyToClipboard(d.pkg)
+                    snack(getString(R.string.t165))
+                },
+                button(getString(R.string.t561), outlined = true) {
+                    sheet.dismiss()
+                    if (paneBackCallback.isEnabled) closeUninstallPane()
+                    if (appsBackCallback.isEnabled) closeAppsPane()
+                    terminalInput?.apply {
+                        setText(d.pkg)
+                        setSelection(d.pkg.length)
+                        requestFocus()
+                    }
+                    mainScroll.post {
+                        val fieldTop = (terminalInput?.parent?.parent as? View)?.top ?: 0
+                        mainScroll.smoothScrollTo(0, fieldTop)
+                    }
+                    updateExplain()
+                    snack(getString(R.string.t567, d.pkg))
+                }
+            )
+        )
+
+        if (d.serverOnline) {
+            body.addView(space(8))
+            val freezeLabelRes = if (d.disabled) R.string.t487 else R.string.t486
+            body.addView(
+                row(
+                    button(getString(R.string.t558), outlined = true) {
+                        Thread {
+                            val ok = AppInspector.forceStop(this, d.pkg)
+                            AccessStore.log(this, "inspector force-stop ${d.pkg} ok=$ok")
+                            runOnUiThread {
+                                snack(getString(if (ok) R.string.t527 else R.string.t495, d.pkg), error = !ok)
+                                if (ok) onRefresh()
+                            }
+                        }.start()
+                    },
+                    button(getString(freezeLabelRes), outlined = true) {
+                        val wantFreeze = !d.disabled
+                        Thread {
+                            val ok = AppInspector.setFrozen(this, d.pkg, wantFreeze)
+                            AccessStore.log(this, "inspector freeze=${wantFreeze} ${d.pkg} ok=$ok")
                             runOnUiThread {
                                 if (ok) {
-                                    animCurrent.text = getString(R.string.t500, "${scaleVal}x")
-                                    snack(getString(R.string.t500, "${scaleVal}x"))
+                                    snack(
+                                        getString(
+                                            if (wantFreeze) R.string.t491 else R.string.t492,
+                                            1,
+                                            0
+                                        )
+                                    )
+                                    onMutated()
+                                    onRefresh()
                                 } else {
                                     snack(getString(R.string.t495), error = true)
                                 }
                             }
                         }.start()
                     }
-                    scaleRow.addView(
-                        b,
-                        LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                            if (idx > 0) marginStart = 6.dp
+                )
+            )
+
+            body.addView(space(14)); body.addView(divider()); body.addView(space(10))
+            body.addView(
+                serverTweakSwitch(
+                    title = getString(R.string.t554),
+                    initial = d.bgRestricted,
+                    logTag = "bg_restrict(${d.pkg})",
+                    successMsg = { want -> getString(R.string.t564, getString(if (want) R.string.t565 else R.string.t566)) },
+                    apply = { want -> AppInspector.setBackgroundRestricted(this, d.pkg, want) }
+                )
+            )
+            body.addView(
+                label(getString(R.string.t555), 12f).apply {
+                    setTextColor(hintColor)
+                    setPadding(0, 2.dp, 0, 0)
+                }
+            )
+        } else {
+            body.addView(space(12))
+            body.addView(label(getString(R.string.t495), 12f).apply { setTextColor(hintColor) })
+        }
+
+        if (d.permissions.isNotEmpty()) {
+            body.addView(space(14)); body.addView(divider()); body.addView(space(10))
+            body.addView(label(getString(R.string.t556), 14f, bold = true))
+            body.addView(space(6))
+            d.permissions.forEach { pItem ->
+                if (pItem.toggleable) {
+                    body.addView(
+                        serverTweakSwitch(
+                            title = pItem.shortName,
+                            initial = pItem.granted,
+                            logTag = "perm(${d.pkg}:${pItem.shortName})",
+                            successMsg = { want -> getString(if (want) R.string.t562 else R.string.t563, pItem.shortName) },
+                            apply = { want -> AppInspector.setPermissionOrOp(this, d.pkg, pItem, want) }
+                        )
+                    )
+                } else {
+                    val mark = if (pItem.granted) "✓" else "✕"
+                    body.addView(
+                        label("$mark  ${pItem.shortName}", 12f).apply {
+                            appTypeface(400, code = true)
+                            setTextColor(hintColor)
+                            setPadding(0, 4.dp, 0, 4.dp)
                         }
                     )
                 }
-                controls.addView(scaleRow)
-
-                controls.addView(space(16))
-                controls.addView(divider())
-                controls.addView(space(12))
-
-                lateinit var dnsSwitch: MaterialSwitch
-                dnsSwitch = MaterialSwitch(this).apply {
-                    text = getString(R.string.t501)
-                    textSize = 14f
-                    appTypeface(500)
-                    isChecked = state.adguardDnsOn
-                    setOnCheckedChangeListener(object : android.widget.CompoundButton.OnCheckedChangeListener {
-                        override fun onCheckedChanged(buttonView: android.widget.CompoundButton, want: Boolean) {
-                            Thread {
-                                val ok = SystemTweaks.setAdguardDns(this@MainActivity, want)
-                                AccessStore.log(this@MainActivity, "tweak dns_adguard=$want ok=$ok")
-                                runOnUiThread {
-                                    if (ok) {
-                                        snack(getString(if (want) R.string.t502 else R.string.t503))
-                                    } else {
-                                        setSwitchQuietly(dnsSwitch, !want, this)
-                                        snack(getString(R.string.t495), error = true)
-                                    }
-                                }
-                            }.start()
-                        }
-                    })
-                }
-                controls.addView(dnsSwitch)
-
-                controls.addView(space(8))
-                lateinit var awakeSwitch: MaterialSwitch
-                awakeSwitch = MaterialSwitch(this).apply {
-                    text = getString(R.string.t504)
-                    textSize = 14f
-                    appTypeface(500)
-                    isChecked = state.stayAwakeOn
-                    setOnCheckedChangeListener(object : android.widget.CompoundButton.OnCheckedChangeListener {
-                        override fun onCheckedChanged(buttonView: android.widget.CompoundButton, want: Boolean) {
-                            Thread {
-                                val ok = SystemTweaks.setStayAwake(this@MainActivity, want)
-                                AccessStore.log(this@MainActivity, "tweak stay_awake=$want ok=$ok")
-                                runOnUiThread {
-                                    if (ok) {
-                                        val labelVal = getString(if (want) R.string.t512 else R.string.t513)
-                                        snack(getString(R.string.t505, labelVal))
-                                    } else {
-                                        setSwitchQuietly(awakeSwitch, !want, this)
-                                        snack(getString(R.string.t495), error = true)
-                                    }
-                                }
-                            }.start()
-                        }
-                    })
-                }
-                controls.addView(awakeSwitch)
-
-                controls.addView(space(16))
-                controls.addView(divider())
-                controls.addView(space(14))
-                controls.addView(button(getString(R.string.t506), outlined = true) {
-                    Thread {
-                        val ok = SystemTweaks.trimCaches(this)
-                        AccessStore.log(this, "tweak trim-caches ok=$ok")
-                        runOnUiThread {
-                            snack(
-                                getString(if (ok) R.string.t507 else R.string.t495),
-                                error = !ok
-                            )
-                        }
-                    }.start()
-                })
             }
-        }.start()
+        }
     }
+
+    private fun homeActionCardContent(
+        titleText: String,
+        subtitleText: String,
+        onClick: () -> Unit
+    ): View {
+        val entry = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            isClickable = true
+            background = ripple()
+            setPadding(20.dp, 20.dp, 20.dp, 20.dp)
+            setOnClickListener { onClick() }
+        }
+        val titleCol = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(label(titleText, 17f, bold = true))
+            addView(
+                label(subtitleText, 13f).apply {
+                    setTextColor(hintColor)
+                    setPadding(0, 6.dp, 0, 0)
+                    setLineSpacing(3f, 1f)
+                }
+            )
+        }
+        entry.addView(titleCol, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        entry.addView(
+            label("❯", 16f, bold = true).apply {
+                setTextColor(hintColor)
+                setPadding(14.dp, 0, 0, 0)
+            }
+        )
+        return entry
+    }
+
+    private fun terminalSnippetStrip(): View {
+        val snippets = listOf(
+            "dumpsys battery",
+            "pm list packages -3",
+            "pm list packages -d",
+            "wm density",
+            "df -h /data",
+            "dumpsys meminfo",
+            "ps -A -o RSS,NAME"
+        )
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        snippets.forEachIndexed { idx, cmd ->
+            row.addView(
+                chipButton(cmd) {
+                    terminalInput?.apply {
+                        setText(cmd)
+                        setSelection(cmd.length)
+                        requestFocus()
+                    }
+                    updateExplain()
+                },
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { if (idx > 0) marginStart = 6.dp }
+            )
+        }
+        return HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(row)
+        }
+    }
+
+    private fun consoleHeaderAction(title: String, onText: (String) -> Unit): TextView =
+        TextView(this).apply {
+            text = title
+            textSize = 13f
+            appTypeface(500)
+            setTextColor(themeColor(MR.attr.colorPrimary))
+            setPadding(12.dp, 6.dp, 4.dp, 6.dp)
+            setOnClickListener {
+                val text = out.text?.toString().orEmpty()
+                if (text.isBlank()) {
+                    snack(getString(R.string.t021), error = true)
+                } else {
+                    onText(text)
+                }
+            }
+        }
 
     private fun showProfilesSheet() {
         val sheet = BottomSheetDialog(this)
@@ -3254,6 +3813,15 @@ class MainActivity : AppCompatActivity() {
         content.addView(space(16))
         CommandProfiles.BUILTINS.forEach { profile ->
             content.addView(profileCard(profile, R.string.t407, null))
+        }
+
+        content.addView(space(10))
+        content.addView(divider())
+        content.addView(space(12))
+        content.addView(label(getString(R.string.t570), 14f, bold = true))
+        content.addView(space(4))
+        CommandProfiles.PRESETS.forEach { profile ->
+            content.addView(profileCard(profile, R.string.t570, null))
         }
 
         content.addView(space(10))
@@ -3521,6 +4089,7 @@ class MainActivity : AppCompatActivity() {
             .setTitle(getString(R.string.t423))
             .setView(wrap)
             .setNegativeButton(getString(R.string.t116), null)
+            .setNeutralButton(getString(R.string.t529)) { _, _ -> shareText(text) }
             .setPositiveButton(getString(R.string.t424)) { _, _ ->
                 copyToClipboard(text)
                 snack(getString(R.string.t165))
