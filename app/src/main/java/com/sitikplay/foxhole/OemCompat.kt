@@ -20,29 +20,45 @@ object OemCompat {
         AOSP("Android / Pixel / AOSP")
     }
 
+    private val CUSTOM_AOSP_MARKERS = listOf(
+        "lineage", "crdroid", "pixelos", "pixelexperience", "evolution", "derpfest",
+        "paranoid", "calyx", "graphene", "matrixx", "alpha", "rising", "clover", "custom_"
+    )
+
+    private val AOSP_BUILD_PREFIX = Regex("^[abc]p\\d[a-z]\\.")
+
     fun classifyRom(
         manufacturer: String,
         brand: String,
         display: String,
         miuiVersion: String?,
         hyperOsVersion: String?,
-        sepVersion: String?
+        sepVersion: String?,
+        oplusVersion: String? = null,
+        emuiVersion: String? = null
     ): RomFamily {
         val man = manufacturer.trim().lowercase()
         val br = brand.trim().lowercase()
         val disp = display.trim().lowercase()
+        val isCustomAosp = CUSTOM_AOSP_MARKERS.any { disp.contains(it) } ||
+            AOSP_BUILD_PREFIX.containsMatchIn(disp)
+
         val xiaomiHardware = man == "xiaomi" || br in setOf("xiaomi", "redmi", "poco")
         val hasHyper = !hyperOsVersion.isNullOrBlank() ||
             disp.contains("hyperos") ||
             (xiaomiHardware && (disp.startsWith("os1.") || disp.startsWith("os2.") || disp.startsWith("os3.")))
 
         if (hasHyper) return RomFamily.HYPEROS
-        if (!miuiVersion.isNullOrBlank() || xiaomiHardware) return RomFamily.MIUI
-        if (man == "samsung" || !sepVersion.isNullOrBlank()) return RomFamily.ONEUI
-        if (man in setOf("oppo", "realme", "oneplus") || br in setOf("oppo", "realme", "oneplus")) {
+        if (!miuiVersion.isNullOrBlank() || (xiaomiHardware && disp.contains("miui"))) return RomFamily.MIUI
+        if (!sepVersion.isNullOrBlank()) return RomFamily.ONEUI
+        if (!oplusVersion.isNullOrBlank() ||
+            (!isCustomAosp && (man in setOf("oppo", "realme", "oneplus") || br in setOf("oppo", "realme", "oneplus")))
+        ) {
             return RomFamily.COLOROS
         }
-        if (man in setOf("huawei", "honor") || br in setOf("huawei", "honor")) {
+        if (!emuiVersion.isNullOrBlank() ||
+            (!isCustomAosp && (man in setOf("huawei", "honor") || br in setOf("huawei", "honor")))
+        ) {
             return RomFamily.MAGIC
         }
         return RomFamily.AOSP
@@ -51,10 +67,12 @@ object OemCompat {
     fun detectRom(): RomFamily = classifyRom(
         manufacturer = Build.MANUFACTURER.orEmpty(),
         brand = Build.BRAND.orEmpty(),
-        display = Build.DISPLAY.orEmpty(),
+        display = "${Build.DISPLAY.orEmpty()} ${Build.PRODUCT.orEmpty()}",
         miuiVersion = sysProp("ro.miui.ui.version.name"),
         hyperOsVersion = sysProp("ro.mi.os.version.name"),
-        sepVersion = sysProp("ro.build.version.sep")
+        sepVersion = sysProp("ro.build.version.sep"),
+        oplusVersion = sysProp("ro.build.version.oplusrom") ?: sysProp("ro.build.version.realmeui"),
+        emuiVersion = sysProp("ro.build.version.emui") ?: sysProp("ro.build.version.magic")
     )
 
     private fun sysProp(key: String): String? = try {
@@ -88,7 +106,7 @@ object OemCompat {
             SysSettings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
             Uri.parse("package:${ctx.packageName}")
         )
-        return if (direct.resolveActivity(ctx.packageManager) != null) {
+        return if (ctx.packageManager.resolveActivity(direct, 0) != null) {
             direct
         } else {
             Intent(SysSettings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
@@ -115,7 +133,7 @@ object OemCompat {
         for (intent in autostartIntents()) {
             try {
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                if (intent.resolveActivity(ctx.packageManager) != null) {
+                if (ctx.packageManager.resolveActivity(intent, 0) != null) {
                     ctx.startActivity(intent)
                     return true
                 }
@@ -126,7 +144,7 @@ object OemCompat {
     }
 
     fun hasAutostartActivity(ctx: Context): Boolean =
-        autostartIntents().any { runCatching { it.resolveActivity(ctx.packageManager) != null }.getOrDefault(false) }
+        autostartIntents().any { runCatching { ctx.packageManager.resolveActivity(it, 0) != null }.getOrDefault(false) }
 
     fun adviceRes(rom: RomFamily): Int = when (rom) {
         RomFamily.HYPEROS, RomFamily.MIUI -> R.string.t483

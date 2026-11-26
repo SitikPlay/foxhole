@@ -52,4 +52,12 @@ class OemCompatTest {
             OemCompat.classifyRom("Google", "google", "AP2A.240905.003", null, null, null)
         )
     }
+
+    @Test
+    fun customAospOnXiaomiHardwareDetectedAsAosp() {
+        assertEquals(
+            OemCompat.RomFamily.AOSP,
+            OemCompat.classifyRom("Xiaomi", "Redmi", "CP2A.260605.016 custom_sweet", null, null, null)
+        )
+    }
 }

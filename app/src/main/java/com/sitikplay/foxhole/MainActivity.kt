@@ -731,7 +731,7 @@ class MainActivity : AppCompatActivity() {
         )
         pane.addView(header)
 
-        val tabs = MaterialButtonToggleGroup(this)
+        val tabs = singleToggleGroup()
         val tabAccess = MaterialButton(this, null, MR.attr.materialButtonOutlinedStyle).apply {
             id = R.id.foxhole_tab_access
             text = getString(R.string.t042); isCheckable = true; isAllCaps = false
@@ -873,7 +873,7 @@ class MainActivity : AppCompatActivity() {
         )
         pane.addView(header)
 
-        val tabs = MaterialButtonToggleGroup(this)
+        val tabs = singleToggleGroup()
         val tabUninstall = MaterialButton(this, null, MR.attr.materialButtonOutlinedStyle).apply {
             id = R.id.foxhole_tab_uninstall
             text = getString(R.string.t050); isCheckable = true; isAllCaps = false
@@ -930,7 +930,7 @@ class MainActivity : AppCompatActivity() {
         tabUninstallContent.addView(uninstallSearch)
         tabUninstallContent.addView(space(8))
 
-        val filterGroup = MaterialButtonToggleGroup(this)
+        val filterGroup = singleToggleGroup()
         val btnUser = MaterialButton(this, null, MR.attr.materialButtonOutlinedStyle).apply {
             id = R.id.foxhole_filter_user
             text = getString(R.string.t052); isCheckable = true; isAllCaps = false
@@ -2001,7 +2001,7 @@ class MainActivity : AppCompatActivity() {
             label(
                 app.pkg +
                     (if (app.system) getString(R.string.t112) else getString(R.string.t113)) +
-                    (if (app.disabled) getString(R.string.t488) else ""),
+                    (if (app.disabled) " ${getString(R.string.t488).trimStart()}" else ""),
                 11f
             ).apply {
                 setTextColor(hintColor)
@@ -4421,6 +4421,13 @@ private fun label(text: String, sizeSp: Float, bold: Boolean = false): TextView 
                         .apply { if (i > 0) marginStart = 8.dp }
                 )
             }
+        }
+
+    /** Creates a single-choice toggle group so at most one segment stays active at a time. */
+    private fun singleToggleGroup(): MaterialButtonToggleGroup =
+        MaterialButtonToggleGroup(this).apply {
+            isSingleSelection = true
+            isSelectionRequired = true
         }
 
     private fun field(hint: String, inputType: Int, maxLength: Int = 0, id: Int = 0): TextInputLayout =
