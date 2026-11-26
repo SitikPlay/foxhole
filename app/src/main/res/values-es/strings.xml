@@ -604,4 +604,10 @@
     <string name="t609">ERR autoprotección: no se puede modificar Foxhole por Bridge</string>
     <string name="t610">ERR se requiere nivel FULL para ajustes o permisos críticos</string>
     <string name="t611">Servidor detenido: mostrando solo auditoría local (sin AppOps).</string>
+    <string name="t612">Descargando actualización…</string>
+    <string name="t613">%1$d%% · %2$.1f / %3$.1f MB</string>
+    <string name="t614">Descargado: %1$.1f MB</string>
+    <string name="t615">Permite a Foxhole instalar actualizaciones para abrir el instalador directo desde la app.</string>
+    <string name="t616">No se pudo descargar la actualización</string>
+    <string name="t617">Abrir ajustes</string>
 </resources>

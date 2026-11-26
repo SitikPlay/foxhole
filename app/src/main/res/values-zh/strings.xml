@@ -604,4 +604,10 @@
     <string name="t609">ERR 自我保护：禁止通过 Bridge 修改 Foxhole</string>
     <string name="t610">ERR 修改关键设置或权限需要 FULL 级别</string>
     <string name="t611">服务未运行：仅显示本地安全审计（不含 AppOps 检查）。</string>
+    <string name="t612">正在下载更新…</string>
+    <string name="t613">%1$d%% · %2$.1f / %3$.1f MB</string>
+    <string name="t614">已下载：%1$.1f MB</string>
+    <string name="t615">请允许 Foxhole 安装更新，以便直接在应用内打开安装界面。</string>
+    <string name="t616">无法下载更新</string>
+    <string name="t617">打开设置</string>
 </resources>

@@ -183,7 +183,7 @@ pre {
     <div>
       <h1><span data-t="ru" lang="ru">Shell-доступ без root, который ты контролируешь</span><span data-t="en" lang="en">Shell access without root, under your control</span></h1>
       <p class="lead"><span data-t="ru" lang="ru">Foxhole запускает маленький сервер с правами shell и даёт выбранным приложениям выполнять shell-команды. Каждое приложение ты разрешаешь вручную и можешь отозвать в один тап.</span><span data-t="en" lang="en">Foxhole starts a small server with shell privileges and lets selected apps run shell commands. You approve each app by hand and can revoke access with one tap.</span></p>
-      <p class="note"><span data-t="ru" lang="ru">Версия 1.3.1 (багфикс). Работает на Android 8 и выше; спаривание по Wi-Fi и автозапуск — только с Android 11. Проверено не на всех прошивках.</span><span data-t="en" lang="en">Version 1.3.1 (bugfix release). Works on Android 8 and up; Wi-Fi pairing and autostart only on Android 11+. Not tested on every firmware.</span></p>
+      <p class="note"><span data-t="ru" lang="ru">Версия 1.4.0 — Sentinel («Страж»). Работает на Android 8 и выше; спаривание по Wi-Fi и автозапуск — только с Android 11. Проверено не на всех прошивках.</span><span data-t="en" lang="en">Version 1.4.0 — Sentinel. Works on Android 8 and up; Wi-Fi pairing and autostart only on Android 11+. Not tested on every firmware.</span></p>
       <div class="actions">
         <a class="btn btn-main" href="https://github.com/SitikPlay/foxhole/releases/latest"><span data-t="ru" lang="ru">Скачать APK</span><span data-t="en" lang="en">Download APK</span></a>
         <a class="btn btn-ghost" href="https://github.com/SitikPlay/foxhole"><span data-t="ru" lang="ru">Исходный код</span><span data-t="en" lang="en">Source code</span></a>
@@ -273,7 +273,35 @@ pre {
 
   <section class="section" id="new">
     <div class="wrap">
-      <h2><span data-t="ru" lang="ru">Что нового в 1.3.1</span><span data-t="en" lang="en">What is new in 1.3.1</span></h2>
+      <h2><span data-t="ru" lang="ru">Что нового в 1.4.0 — Sentinel («Страж»)</span><span data-t="en" lang="en">What is new in 1.4.0 — Sentinel</span></h2>
+      <div class="feats">
+      <div class="feat guide">
+        <h3 class="guide-title"><span data-t="ru" lang="ru">Щит безопасности и Panic Lockdown</span><span data-t="en" lang="en">Security Shield &amp; Panic Lockdown</span></h3>
+        <ul class="checks">
+          <li><span data-t="ru" lang="ru">Индекс защиты (0–100): проверка PIN/биометрии, <code>FLAG_SECURE</code>, USB и Wi-Fi отладки (с отключением в один тап), проверки ADB-установок и Private DNS.</span><span data-t="en" lang="en">Security Score (0–100): device confirmation, <code>FLAG_SECURE</code>, USB/Wi-Fi debugging toggle, ADB verifier and Private DNS checks.</span></li>
+          <li><span data-t="ru" lang="ru">Контроль сторонних служб Accessibility, чтения буфера обмена (<code>READ_CLIPBOARD</code>), установки APK и доступа к камере, микрофону, геолокации и SMS.</span><span data-t="en" lang="en">Inspect third-party Accessibility services, clipboard access (<code>READ_CLIPBOARD</code>), APK installers and camera/mic/location/SMS grants.</span></li>
+          <li><span data-t="ru" lang="ru"><b>Panic Lockdown</b>: в один тап отзывает доступы у всех приложений, сбрасывает токен и останавливает сервер.</span><span data-t="en" lang="en"><b>Panic Lockdown</b>: revokes all granted apps, rotates the token and stops the server in one tap.</span></li>
+        </ul>
+      </div>
+      <div class="feat guide">
+        <h3 class="guide-title"><span data-t="ru" lang="ru">Контроль системы и приложений</span><span data-t="en" lang="en">System &amp; App Control</span></h3>
+        <ul class="checks">
+          <li><span data-t="ru" lang="ru"><b>Монитор системы</b>: заряд, температура и напряжение батареи, ОЗУ, память <code>/data</code>, аптайм и топ процессов от uid 2000.</span><span data-t="en" lang="en"><b>System Monitor</b>: live battery stats, RAM, <code>/data</code> storage, uptime and top processes as uid 2000.</span></li>
+          <li><span data-t="ru" lang="ru"><b>Инспектор приложений и Logcat</b>: пути APK, переключение разрешений и AppOps, ограничение фона, заморозка без потери данных и просмотр логов.</span><span data-t="en" lang="en"><b>App Inspector &amp; Logcat</b>: APK paths, permissions/AppOps toggles, background restrictions, app freeze and live logcat viewer.</span></li>
+          <li><span data-t="ru" lang="ru"><b>Быстрые твики 2.0 и Терминал 2.0</b>: пресеты Private DNS, DPI (240–720), отключение Phantom Process Killer и динамическая высота вывода до 300dp.</span><span data-t="en" lang="en"><b>Quick Tweaks 2.0 &amp; Terminal 2.0</b>: Private DNS presets, DPI (240–720), Phantom Process Killer toggle and dynamic output up to 300dp.</span></li>
+        </ul>
+      </div>
+      <div class="feat guide">
+        <h3 class="guide-title"><span data-t="ru" lang="ru">Надёжность и харденинг контура</span><span data-t="en" lang="en">Reliability &amp; Hardening</span></h3>
+        <ul class="checks">
+          <li><span data-t="ru" lang="ru">Прямой TLS-фолбэк для Wi-Fi отладки при сбоях mDNS, фоновый Watchdog и точный OEM-доктор под HyperOS/MIUI/One UI/ColorOS/AOSP.</span><span data-t="en" lang="en">Direct TLS fallback for wireless debugging when mDNS fails, background Watchdog and OEM compatibility doctor.</span></li>
+          <li><span data-t="ru" lang="ru">Защищённый запуск сервера (лог <code>0600</code>, токен через <code>FOXHOLE_TOK</code>), самозащита Foxhole в провайдере и защита критичных настроек уровнем <code>FULL</code>.</span><span data-t="en" lang="en">Hardened server launch (<code>0600</code> log, token via <code>FOXHOLE_TOK</code>), bridge self-protection and <code>FULL</code> guard for sensitive settings.</span></li>
+          <li><span data-t="ru" lang="ru">Встроенная проверка и загрузка обновлений напрямую внутри приложения (без перехода в «Файлы»).</span><span data-t="en" lang="en">Built-in update checker with direct in-app APK download and installer launch.</span></li>
+        </ul>
+      </div>
+      </div>
+
+      <h2><span data-t="ru" lang="ru">Что было в 1.3.1 – 1.3.2</span><span data-t="en" lang="en">Earlier in 1.3.1 – 1.3.2</span></h2>
       <div class="feats">
       <div class="feat guide">
         <h3 class="guide-title"><span data-t="ru" lang="ru">Исправления (без новых функций)</span><span data-t="en" lang="en">Fixes (no new features)</span></h3>

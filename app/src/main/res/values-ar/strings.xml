@@ -604,4 +604,10 @@
     <string name="t609">ERR حماية ذاتية: يمنع تعديل Foxhole عبر Bridge</string>
     <string name="t610">ERR يتطلب الإعداد أو الإذن الحساس مستوى FULL</string>
     <string name="t611">الخادم متوقف: عرض الفحص المحلي فقط (بدون AppOps).</string>
+    <string name="t612">جارٍ تنزيل التحديث…</string>
+    <string name="t613">%1$d%% · %2$.1f / %3$.1f ميغابايت</string>
+    <string name="t614">تم التنزيل: %1$.1f ميغابايت</string>
+    <string name="t615">اسمح لـ Foxhole بتثبيت التحديثات لفتح المثبّت مباشرة من التطبيق.</string>
+    <string name="t616">تعذّر تنزيل التحديث</string>
+    <string name="t617">فتح الإعدادات</string>
 </resources>

@@ -75,11 +75,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Collections
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 class MainActivity : AppCompatActivity() {
 
     private var cachedReleaseInfo: ReleaseInfo? = null
     private var updateCheckedAtLeastOnce: Boolean = false
+    private var pendingInstallApk: File? = null
+    private var awaitingInstallPermission: Boolean = false
 
     private lateinit var out: TextView
 
@@ -1093,6 +1096,14 @@ class MainActivity : AppCompatActivity() {
             }
         }.start()
         maybeAskNotificationPermission()
+        if (awaitingInstallPermission) {
+            awaitingInstallPermission = false
+            val pending = pendingInstallApk
+            if (pending != null && pending.exists() && UpdateChecker.canInstallPackages(this)) {
+                pendingInstallApk = null
+                installDownloadedApk(pending)
+            }
+        }
     }
 
     private fun maybeAskNotificationPermission() {
@@ -4982,14 +4993,95 @@ class MainActivity : AppCompatActivity() {
             .setTitle(info.name)
             .setView(bodyView)
             .setPositiveButton(R.string.t467) { _, _ ->
-                val url = info.apkUrl ?: "https://github.com/SitikPlay/foxhole/releases/latest"
-                val ok = UpdateChecker.downloadApk(this, url, "${info.tagName}.apk")
-                if (ok) {
-                    snack(getString(R.string.t469))
+                val url = info.apkUrl
+                if (url != null) {
+                    startInAppUpdateDownload(url, "Foxhole-${info.tagName}.apk")
+                } else {
+                    UpdateChecker.openExternalUrl(this, "https://github.com/SitikPlay/foxhole/releases/latest")
                 }
             }
             .setNegativeButton(R.string.t468, null)
             .show()
+    }
+
+    private fun startInAppUpdateDownload(apkUrl: String, fileName: String) {
+        if (isFinishing || isDestroyed) return
+        val cancelled = AtomicBoolean(false)
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24.dp, 16.dp, 24.dp, 8.dp)
+        }
+        val progressBar = LinearProgressIndicator(this).apply {
+            isIndeterminate = true
+            max = 100
+        }
+        val statusText = TextView(this).apply {
+            text = getString(R.string.t612)
+            textSize = 13f
+            setTextColor(hintColor)
+            setPadding(0, 12.dp, 0, 0)
+        }
+        box.addView(progressBar)
+        box.addView(statusText)
+
+        val dlg = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.t612)
+            .setView(box)
+            .setCancelable(false)
+            .setNegativeButton(R.string.t116) { _, _ -> cancelled.set(true) }
+            .create()
+        dlg.show()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val res = UpdateChecker.downloadApkInApp(
+                ctx = applicationContext,
+                apkUrl = apkUrl,
+                fileName = fileName,
+                onProgress = { downloaded, total ->
+                    runOnUiThread {
+                        if (!dlg.isShowing) return@runOnUiThread
+                        val gotMb = downloaded / (1024f * 1024f)
+                        if (total > 0L) {
+                            val pct = ((downloaded * 100L) / total).toInt().coerceIn(0, 100)
+                            val totalMb = total / (1024f * 1024f)
+                            if (progressBar.isIndeterminate) progressBar.isIndeterminate = false
+                            progressBar.setProgressCompat(pct, true)
+                            statusText.text = getString(R.string.t613, pct, gotMb, totalMb)
+                        } else {
+                            statusText.text = getString(R.string.t614, gotMb)
+                        }
+                    }
+                },
+                isCancelled = { cancelled.get() }
+            )
+            withContext(Dispatchers.Main) {
+                if (dlg.isShowing) dlg.dismiss()
+                if (isFinishing || isDestroyed) return@withContext
+                when (res) {
+                    is UpdateChecker.DownloadResult.Success -> installDownloadedApk(res.file)
+                    is UpdateChecker.DownloadResult.Cancelled -> Unit
+                    is UpdateChecker.DownloadResult.Error -> snack("${getString(R.string.t616)}: ${res.message}", error = true)
+                }
+            }
+        }
+    }
+
+    private fun installDownloadedApk(apkFile: File) {
+        if (!UpdateChecker.canInstallPackages(this)) {
+            pendingInstallApk = apkFile
+            MaterialAlertDialogBuilder(this)
+                .setMessage(R.string.t615)
+                .setNegativeButton(R.string.t116, null)
+                .setPositiveButton(R.string.t617) { _, _ ->
+                    awaitingInstallPermission = true
+                    UpdateChecker.openInstallPermissionSettings(this)
+                }
+                .show()
+            return
+        }
+        if (!UpdateChecker.launchInstaller(this, apkFile)) {
+            snack(getString(R.string.t616), error = true)
+        }
     }
 
     private fun switchRow(text: String, checked: Boolean, onChange: (Boolean) -> Unit): MaterialSwitch =

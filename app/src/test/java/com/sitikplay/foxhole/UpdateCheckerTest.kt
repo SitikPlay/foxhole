@@ -2,6 +2,7 @@ package com.sitikplay.foxhole
 
 import org.junit.Assert.*
 import org.junit.Test
+import java.io.File
 
 class UpdateCheckerTest {
 
@@ -48,5 +49,44 @@ class UpdateCheckerTest {
         assertFalse(UpdateChecker.isAndroidReleaseTag("ADB-v2.0.0"))
         assertFalse(UpdateChecker.isAndroidReleaseTag(""))
         assertFalse(UpdateChecker.isAndroidReleaseTag("draft"))
+    }
+
+    @Test
+    fun formatReleaseNotes_stripsMarkdownAndHtml() {
+        val raw = """
+            ### Что нового:
+            - **Щит безопасности**: проверка `READ_CLIPBOARD` и <b>Panic Lockdown</b><br>
+            - Подробнее: [релиз](https://example.com)
+        """.trimIndent()
+        val formatted = UpdateChecker.formatReleaseNotes(raw)
+        assertFalse(formatted.contains("###"))
+        assertFalse(formatted.contains("**"))
+        assertFalse(formatted.contains("`"))
+        assertFalse(formatted.contains("<b>"))
+        assertTrue(formatted.contains("Щит безопасности"))
+        assertTrue(formatted.contains("Panic Lockdown"))
+        assertTrue(formatted.contains("релиз"))
+
+        val longMd = (1..20).joinToString("\n") { "- **Пункт $it**: длинное описание изменения номер $it для теста усечения текста" }
+        val condensed = UpdateChecker.formatReleaseNotes(longMd, maxLines = 6, maxChars = 300)
+        assertTrue(condensed.endsWith("…"))
+        assertTrue(condensed.lines().size <= 7)
+    }
+
+    @Test
+    fun isValidApkFile_checksZipMagicAndSize() {
+        val valid = File.createTempFile("valid_apk", ".apk")
+        val bad = File.createTempFile("bad_html", ".apk")
+        try {
+            val bytes = ByteArray(2048)
+            bytes[0] = 0x50; bytes[1] = 0x4B; bytes[2] = 0x03; bytes[3] = 0x04
+            valid.writeBytes(bytes)
+            bad.writeText("<html>404</html>")
+            assertTrue(UpdateChecker.isValidApkFile(valid))
+            assertFalse(UpdateChecker.isValidApkFile(bad))
+        } finally {
+            valid.delete()
+            bad.delete()
+        }
     }
 }

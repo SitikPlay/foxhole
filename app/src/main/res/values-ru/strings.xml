@@ -611,4 +611,10 @@
     <string name="t609">ERR самозащита: изменение самого Foxhole через Bridge запрещено</string>
     <string name="t610">ERR для системной настройки или спецправа нужен уровень FULL</string>
     <string name="t611">Сервер не запущен — показан локальный аудит (без AppOps-проверок).</string>
+    <string name="t612">Загрузка обновления…</string>
+    <string name="t613">%1$d%% · %2$.1f / %3$.1f МБ</string>
+    <string name="t614">Загружено: %1$.1f МБ</string>
+    <string name="t615">Разрешите Foxhole установку обновлений, чтобы установщик открывался прямо из приложения без «Файлов».</string>
+    <string name="t616">Не удалось скачать обновление</string>
+    <string name="t617">Открыть настройки</string>
 </resources>

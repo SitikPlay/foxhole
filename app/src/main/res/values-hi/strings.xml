@@ -604,4 +604,10 @@
     <string name="t609">ERR आत्म-सुरक्षा: Bridge से Foxhole में बदलाव वर्जित है</string>
     <string name="t610">ERR संवेदनशील सेटिंग या अनुमति के लिए FULL स्तर आवश्यक है</string>
     <string name="t611">सर्वर बंद है: केवल स्थानीय ऑडिट दिखाया जा रहा है (AppOps बिना)।</string>
+    <string name="t612">अपडेट डाउनलोड हो रहा है…</string>
+    <string name="t613">%1$d%% · %2$.1f / %3$.1f MB</string>
+    <string name="t614">डाउनलोड हुआ: %1$.1f MB</string>
+    <string name="t615">सीधे ऐप से इंस्टॉलर खोलने के लिए Foxhole को अपडेट इंस्टॉल करने की अनुमति दें।</string>
+    <string name="t616">अपडेट डाउनलोड नहीं हो सका</string>
+    <string name="t617">सेटिंग्स खोलें</string>
 </resources>

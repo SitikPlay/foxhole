@@ -613,4 +613,10 @@
     <string name="t609">ERR self-protection: modifying Foxhole via Bridge is forbidden</string>
     <string name="t610">ERR required FULL access for sensitive setting or permission</string>
     <string name="t611">Security scan needs server for AppOps checks; showing local device checks.</string>
+    <string name="t612">Downloading update…</string>
+    <string name="t613">%1$d%% · %2$.1f / %3$.1f MB</string>
+    <string name="t614">Downloaded: %1$.1f MB</string>
+    <string name="t615">Allow Foxhole to install updates from this source so the installer opens directly from the app.</string>
+    <string name="t616">Could not download update</string>
+    <string name="t617">Open settings</string>
 </resources>
