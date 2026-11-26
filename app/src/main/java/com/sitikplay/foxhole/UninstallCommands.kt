@@ -15,6 +15,10 @@ object UninstallCommands {
 
     fun restoreSystemCmd(pkg: String): String = "pm install-existing --user 0 ${quote(pkg)}"
 
+    fun freezeCmd(pkg: String): String = "pm disable-user --user 0 ${quote(pkg)}"
+
+    fun unfreezeCmd(pkg: String): String = "pm enable ${quote(pkg)}"
+
     fun stagingDir(pkg: String): String =
         "$STAGING_ROOT/" + pkg.replace(Regex("[^A-Za-z0-9_.]"), "_")
 

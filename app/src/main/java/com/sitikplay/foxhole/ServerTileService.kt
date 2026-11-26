@@ -106,6 +106,7 @@ class ServerTileService : TileService() {
         if (FoxholeAdb.hasKey(this)) {
             setStartingState()
             Thread {
+                Settings.setStoppedBootCount(this, -1)
                 val res = RemoteStart.run(
                     this,
                     wifiTimeoutMs = 30_000L,

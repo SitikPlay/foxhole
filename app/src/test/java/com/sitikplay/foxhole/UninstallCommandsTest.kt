@@ -82,4 +82,20 @@ class UninstallCommandsTest {
             UninstallCommands.stagingDir("com.example/app")
         )
     }
+
+    @Test
+    fun freezeAndUnfreezeCommandsQuotePackage() {
+        assertEquals(
+            "pm disable-user --user 0 'com.miui.analytics'",
+            UninstallCommands.freezeCmd("com.miui.analytics")
+        )
+        assertEquals(
+            "pm enable 'com.miui.analytics'",
+            UninstallCommands.unfreezeCmd("com.miui.analytics")
+        )
+        assertEquals(
+            "pm disable-user --user 0 'com.x\$(id)'",
+            UninstallCommands.freezeCmd("com.x\$(id)")
+        )
+    }
 }

@@ -39,4 +39,14 @@ class UpdateCheckerTest {
         assertTrue(UpdateChecker.isVersionNewer("v1.3.3-beta", "1.3.2"))
         assertFalse(UpdateChecker.isVersionNewer("v1.3.2-rc1", "1.3.2"))
     }
+
+    @Test
+    fun releaseTagFilter_ignoresAdbCompanionReleases() {
+        assertTrue(UpdateChecker.isAndroidReleaseTag("v1.4.0"))
+        assertTrue(UpdateChecker.isAndroidReleaseTag("1.3.2"))
+        assertFalse(UpdateChecker.isAndroidReleaseTag("adb-v1.2.0"))
+        assertFalse(UpdateChecker.isAndroidReleaseTag("ADB-v2.0.0"))
+        assertFalse(UpdateChecker.isAndroidReleaseTag(""))
+        assertFalse(UpdateChecker.isAndroidReleaseTag("draft"))
+    }
 }

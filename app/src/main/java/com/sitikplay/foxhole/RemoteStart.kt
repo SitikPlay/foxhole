@@ -6,7 +6,6 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.provider.Settings as SysSettings
-import io.github.muntashirakon.adb.android.AdbMdns
 import java.util.concurrent.TimeUnit
 
 object RemoteStart {
@@ -112,39 +111,44 @@ object RemoteStart {
     }
 
     private fun runBoot(ctx: Context): String {
-        var service: Pair<String, Int>? = null
-        for (attempt in 0 until 2) {
-            service = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                Discover.service(ctx, AdbMdns.SERVICE_TYPE_TLS_CONNECT, MDNS_TIMEOUT_MS)
-            } else {
-                null
-            }
-            if (service != null) break
-            if (attempt == 0) {
-                Thread.sleep(5_000)
-                if (!wifiConnected(ctx)) return "ERR|" + ctx.getString(R.string.t333)
-            }
-        }
-
-        if (service == null) {
-            service = Settings.parseWdsAddress(Settings.wdsAddress(ctx))
-        }
-        if (service == null) {
-            return "ERR|" + ctx.getString(R.string.t334)
-        }
-        val host = service.first
-        val port = service.second
         val adb = FoxholeAdb.get(ctx)
-
         adb.setTimeout(12, TimeUnit.SECONDS)
-        val connected = try {
-            adb.connect(host, port)
-        } catch (e: Exception) {
-            false
+
+        var conn = Discover.connectWithFallback(
+            ctx = ctx,
+            adb = adb,
+            mdnsTimeoutMs = MDNS_TIMEOUT_MS,
+            scanBudgetMs = 20_000L,
+            excludePorts = setOf(Settings.port(ctx))
+        )
+        if (conn.status == Discover.ConnectStatus.FAILED && wifiConnected(ctx)) {
+            Thread.sleep(3_000)
+            conn = Discover.connectWithFallback(
+                ctx = ctx,
+                adb = adb,
+                mdnsTimeoutMs = 4_000L,
+                scanBudgetMs = 20_000L,
+                excludePorts = setOf(Settings.port(ctx))
+            )
         }
-        if (!connected) {
-            return "ERR|" + ctx.getString(R.string.t335)
+
+        when (conn.status) {
+            Discover.ConnectStatus.CONNECTED -> Unit
+            Discover.ConnectStatus.PAIRING_REQUIRED -> return "ERR|" + ctx.getString(R.string.t090)
+            Discover.ConnectStatus.AUTH_FAILED -> return "ERR|" + ctx.getString(R.string.t091)
+            Discover.ConnectStatus.WIFI_DISABLED -> return "ERR|" + ctx.getString(R.string.t345)
+            Discover.ConnectStatus.FAILED -> {
+                val err = conn.lastError
+                return if (err != null) {
+                    "ERR|" + friendlyAdbError(ctx, err)
+                } else {
+                    "ERR|" + ctx.getString(R.string.t334)
+                }
+            }
         }
+
+        val host = conn.host ?: "127.0.0.1"
+        val port = conn.port
         // А8: после подключения adb-соединение должно закрываться на любом
         // пути выхода — раньше при неудаче записи скрипта или таймауте ping
         // соединение оставалось висеть.
@@ -161,7 +165,7 @@ object RemoteStart {
             while (System.currentTimeMillis() - pingAt < PING_TIMEOUT_MS) {
                 val res = ServerClient.request(ctx, "ping")
                 if (res.startsWith("OK pong")) {
-                    return "OK|" + ctx.getString(R.string.t338, service.first, service.second)
+                    return "OK|" + ctx.getString(R.string.t338, host, port)
                 }
                 Thread.sleep(1_000)
             }

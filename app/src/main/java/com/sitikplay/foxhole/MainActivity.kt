@@ -102,6 +102,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusTitle: TextView
     private lateinit var statusSubtitle: TextView
     private lateinit var stopButton: MaterialButton
+    private lateinit var startButton: MaterialButton
     private lateinit var pairingFold: Fold
     private lateinit var pairButton: MaterialButton
     private lateinit var pairPortField: TextInputLayout
@@ -133,6 +134,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var suggestedBox: LinearLayout
     private lateinit var uninstallFooterButton: MaterialButton
+    private lateinit var freezeFooterButton: MaterialButton
+    private lateinit var unfreezeFooterButton: MaterialButton
     private var serverOnline: Boolean? = null
     private var pulse: ObjectAnimator? = null
     private lateinit var mainScroll: ScrollView
@@ -199,6 +202,7 @@ class MainActivity : AppCompatActivity() {
         // Разовая миграция истории терминала: старые записи с секретами
         // хранились открытым текстом — перезаписываем маскированными.
         Thread { TerminalHistory.migrateToMasked(this) }.start()
+        if (Settings.watchdog(this)) WatchdogWorker.syncSchedule(this)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -534,6 +538,43 @@ class MainActivity : AppCompatActivity() {
         profilesEntry.setOnClickListener { showProfilesSheet() }
         root.addView(
             cardFor(profilesEntry),
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 14.dp }
+        )
+
+        val tweaksEntry = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            isClickable = true
+            background = ripple()
+            setPadding(20.dp, 20.dp, 20.dp, 20.dp)
+        }
+        val tweaksTitle = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(label(getString(R.string.t493), 17f, bold = true))
+            addView(
+                label(getString(R.string.t494), 13f).apply {
+                    setTextColor(hintColor)
+                    setPadding(0, 6.dp, 0, 0)
+                    setLineSpacing(3f, 1f)
+                }
+            )
+        }
+        tweaksEntry.addView(
+            tweaksTitle,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        tweaksEntry.addView(
+            label("❯", 16f, bold = true).apply {
+                setTextColor(hintColor)
+                setPadding(14.dp, 0, 0, 0)
+            }
+        )
+        tweaksEntry.setOnClickListener { openTweaksSheet() }
+        root.addView(
+            cardFor(tweaksEntry),
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -937,6 +978,10 @@ class MainActivity : AppCompatActivity() {
         uninstallFooterButton = button(getString(R.string.t057)) { confirmUninstall() }
         tabUninstallContent.addView(uninstallFooterButton)
         tabUninstallContent.addView(space(8))
+        freezeFooterButton = button(getString(R.string.t486), outlined = true) { confirmFreeze() }
+        unfreezeFooterButton = button(getString(R.string.t487), outlined = true) { performFreezeSelection(freeze = false) }
+        tabUninstallContent.addView(row(freezeFooterButton, unfreezeFooterButton))
+        tabUninstallContent.addView(space(8))
         tabUninstallContent.addView(button(getString(R.string.t047), outlined = true) {
             uninstallLoaded = false
             loadUninstallApps()
@@ -1181,6 +1226,13 @@ class MainActivity : AppCompatActivity() {
         content.addView(space(18))
 
         content.addView(
+            button(getString(R.string.t471)) { startOrPairServer() }.apply {
+                startButton = this
+                cornerRadius = 14.dp
+                visibility = View.GONE
+            }
+        )
+        content.addView(
             button(getString(R.string.t067), outlined = true) { stopServer() }.apply {
                 stopButton = this
                 strokeColor = ColorStateList.valueOf(ColorUtils.setAlphaComponent(onContainer, 0x4D))
@@ -1224,7 +1276,24 @@ class MainActivity : AppCompatActivity() {
         if (::stopButton.isInitialized) {
             stopButton.visibility = if (online == true) View.VISIBLE else View.GONE
         }
+        if (::startButton.isInitialized) {
+            startButton.visibility = if (online == false && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
+        }
         startPulse()
+    }
+
+    private fun startOrPairServer() {
+        if (FoxholeAdb.hasKey(this)) {
+            startServer()
+        } else {
+            setFoldExpanded(pairingFold, true)
+            mainScroll.post { mainScroll.smoothScrollTo(0, pairingFold.header.top) }
+            snack(getString(R.string.t242), error = false)
+        }
     }
 
     private fun startPulse() {
@@ -1366,9 +1435,16 @@ class MainActivity : AppCompatActivity() {
                     return@bg "ERR|" + lastError
                 }
                 try {
-                    if (adb.connectTls(this@MainActivity, 6_000)) {
+                    val res = Discover.connectWithFallback(
+                        this@MainActivity,
+                        adb,
+                        mdnsTimeoutMs = 4_000L,
+                        scanBudgetMs = 8_000L,
+                        excludePorts = excludePorts()
+                    )
+                    if (res.status == Discover.ConnectStatus.CONNECTED) {
                         FoxholeAdb.markPaired(this@MainActivity)
-                        return@bg "OK|" + getString(R.string.t083, localIpv4() ?: "")
+                        return@bg "OK|" + getString(R.string.t083, res.host ?: localIpv4() ?: "")
                     }
                 } catch (e: Exception) {
                 }
@@ -1396,30 +1472,45 @@ class MainActivity : AppCompatActivity() {
 
     private fun startServer() {
         bg(getString(R.string.t086), {
+            Settings.setStoppedBootCount(this@MainActivity, -1)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                !OemCompat.isWifiDebuggingOn(this@MainActivity) &&
+                RemoteStart.canManageWifiDebugging(this@MainActivity)
+            ) {
+                val res = RemoteStart.run(
+                    this@MainActivity,
+                    wifiTimeoutMs = 20_000L,
+                    wifiStepMs = 2_000L,
+                    disableWifiAfter = Settings.bootDisableWifi(this@MainActivity)
+                )
+                return@bg if (res.startsWith("OK|")) {
+                    "OK|started|" + res.substringAfter("OK|")
+                } else {
+                    res
+                }
+            }
+
             val path = writeScript() ?: return@bg "ERR|" + getString(R.string.t087)
             val adb = FoxholeAdb.get(this@MainActivity)
-            var connected = false
-            var connectError = getString(R.string.t088)
-            for (attempt in 0 until 2) {
-                try {
-                    if (adb.connectTls(this@MainActivity, 8_000)) {
-                        FoxholeAdb.markPaired(this@MainActivity)
-                        connected = true
-                        break
-                    }
-                    connectError = getString(R.string.t089)
-                } catch (e: AdbPairingRequiredException) {
-                    return@bg "ERR|" + getString(R.string.t090)
-                } catch (e: AdbAuthenticationFailedException) {
-                    return@bg "ERR|" + getString(R.string.t091)
-                } catch (e: InterruptedException) {
-                    connectError = getString(R.string.t088)
-                } catch (e: Exception) {
-                    connectError = getString(R.string.t256, e.message)
+            adb.setTimeout(12, TimeUnit.SECONDS)
+
+            val conn = Discover.connectWithFallback(
+                ctx = this@MainActivity,
+                adb = adb,
+                mdnsTimeoutMs = 5_000L,
+                scanBudgetMs = 20_000L,
+                excludePorts = excludePorts()
+            )
+            when (conn.status) {
+                Discover.ConnectStatus.CONNECTED -> FoxholeAdb.markPaired(this@MainActivity)
+                Discover.ConnectStatus.PAIRING_REQUIRED -> return@bg "ERR|" + getString(R.string.t090)
+                Discover.ConnectStatus.AUTH_FAILED -> return@bg "ERR|" + getString(R.string.t091)
+                Discover.ConnectStatus.WIFI_DISABLED -> return@bg "ERR|" + getString(R.string.t345)
+                Discover.ConnectStatus.FAILED -> {
+                    val err = conn.lastError
+                    return@bg "ERR|" + if (err != null) friendlyAdbError(this@MainActivity, err) else getString(R.string.t089)
                 }
-                if (attempt == 0) Thread.sleep(1_200)
             }
-            if (!connected) return@bg "ERR|$connectError"
             try {
                 val stream = adb.openStream("shell:sh \"$path\"")
                 Thread.sleep(4000)
@@ -1779,7 +1870,8 @@ class MainActivity : AppCompatActivity() {
         val pkg: String,
         val label: String,
         val uid: Int,
-        val system: Boolean
+        val system: Boolean,
+        val disabled: Boolean = false
     )
 
     private fun filteredUninstallList(): List<UninstallApp> {
@@ -1818,7 +1910,8 @@ class MainActivity : AppCompatActivity() {
                     }
                     UninstallApp(
                         ai.packageName, label, ai.uid,
-                        ai.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM != 0
+                        ai.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM != 0,
+                        disabled = !ai.enabled
                     )
                 }.sortedBy { it.label.lowercase() }
             } catch (e: Exception) {
@@ -1906,7 +1999,9 @@ class MainActivity : AppCompatActivity() {
         )
         texts.addView(
             label(
-                app.pkg + (if (app.system) getString(R.string.t112) else getString(R.string.t113)),
+                app.pkg +
+                    (if (app.system) getString(R.string.t112) else getString(R.string.t113)) +
+                    (if (app.disabled) getString(R.string.t488) else ""),
                 11f
             ).apply {
                 setTextColor(hintColor)
@@ -2002,6 +2097,76 @@ class MainActivity : AppCompatActivity() {
         uninstallFooterButton.text =
             if (n == 0) getString(R.string.t057) else getString(R.string.t120, n)
         uninstallFooterButton.isEnabled = n > 0
+        if (::freezeFooterButton.isInitialized) freezeFooterButton.isEnabled = n > 0
+        if (::unfreezeFooterButton.isInitialized) unfreezeFooterButton.isEnabled = n > 0
+    }
+
+    private fun confirmFreeze() {
+        val selected = uninstallAll.filter { it.pkg in uninstallSelected }
+        if (selected.isEmpty()) return
+        val hasSystem = selected.any { it.system }
+        val dlg = MaterialAlertDialogBuilder(this)
+            .setTitle(getString(R.string.t489, selected.size))
+            .setMessage(
+                selected.take(15).joinToString("\n") { "· ${it.pkg}" } +
+                    (if (selected.size > 15) getString(R.string.t266, selected.size - 15) else "") +
+                    "\n\n" + getString(R.string.t490)
+            )
+            .setNegativeButton(getString(R.string.t116), null)
+            .setPositiveButton(getString(R.string.t486), null)
+            .create()
+        dlg.setOnShowListener {
+            val positive = dlg.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
+            if (hasSystem) {
+                positive.isEnabled = false
+                uiHandler.postDelayed({ positive.isEnabled = true }, 2000)
+            }
+            positive.setOnClickListener {
+                dlg.dismiss()
+                performFreezeSelection(freeze = true)
+            }
+        }
+        if (Settings.flagSecureScreens(this)) {
+            dlg.window?.setFlags(
+                android.view.WindowManager.LayoutParams.FLAG_SECURE,
+                android.view.WindowManager.LayoutParams.FLAG_SECURE
+            )
+        }
+        dlg.show()
+    }
+
+    private fun performFreezeSelection(freeze: Boolean) {
+        val selected = uninstallAll.filter { it.pkg in uninstallSelected }
+        if (selected.isEmpty()) return
+        Thread {
+            var ok = 0
+            var failed = 0
+            for (app in selected) {
+                val cmd = if (freeze) {
+                    UninstallCommands.freezeCmd(app.pkg)
+                } else {
+                    UninstallCommands.unfreezeCmd(app.pkg)
+                }
+                val r = ServerClient.request(this, cmd)
+                AccessStore.log(this, "${if (freeze) "freeze" else "unfreeze"} ${app.pkg} -> ${r.take(80)}")
+                if (r.startsWith("OK")) {
+                    ok++
+                } else {
+                    failed++
+                }
+            }
+            runOnUiThread {
+                uninstallSelected.clear()
+                uninstallLoaded = false
+                loadUninstallApps()
+                val msg = if (freeze) {
+                    getString(R.string.t491, ok, failed)
+                } else {
+                    getString(R.string.t492, ok, failed)
+                }
+                snack(msg, error = failed > 0 && ok == 0)
+            }
+        }.start()
     }
 
     private fun confirmUninstall() {
@@ -2902,6 +3067,171 @@ class MainActivity : AppCompatActivity() {
         return box
     }
 
+    private fun openTweaksSheet() {
+        BiometricGate.confirm(
+            this,
+            getString(R.string.t493),
+            getString(R.string.t494)
+        ) {
+            showTweaksSheet()
+        }
+    }
+
+    private fun showTweaksSheet() {
+        val sheet = BottomSheetDialog(this)
+        if (Settings.flagSecureScreens(this)) {
+            sheet.window?.setFlags(
+                android.view.WindowManager.LayoutParams.FLAG_SECURE,
+                android.view.WindowManager.LayoutParams.FLAG_SECURE
+            )
+        }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24.dp, 24.dp, 24.dp, 32.dp)
+        }
+        content.addView(label(getString(R.string.t493), 22f, bold = true))
+        content.addView(
+            label(getString(R.string.t494), 13f)
+                .apply { setTextColor(hintColor); setPadding(0, 4.dp, 0, 0) }
+        )
+        content.addView(space(16))
+
+        val statusMsg = label(getString(R.string.t109), 13f).apply { setTextColor(hintColor) }
+        content.addView(statusMsg)
+        content.addView(space(12))
+
+        val controls = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+        }
+        content.addView(controls)
+
+        showSheetWithInsets(sheet, content)
+
+        Thread {
+            val state = SystemTweaks.readState(this)
+            runOnUiThread {
+                if (isFinishing || isDestroyed || !sheet.isShowing) return@runOnUiThread
+                if (state == null) {
+                    statusMsg.text = getString(R.string.t495)
+                    statusMsg.setTextColor(themeColor(MR.attr.colorError))
+                    return@runOnUiThread
+                }
+                statusMsg.visibility = View.GONE
+                controls.visibility = View.VISIBLE
+
+                controls.addView(label(getString(R.string.t496), 14f, bold = true))
+                controls.addView(space(6))
+                val animCurrent = label(getString(R.string.t500, state.animScale), 12f).apply {
+                    setTextColor(hintColor)
+                }
+                controls.addView(animCurrent)
+                controls.addView(space(8))
+                val scaleRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+                val scales = listOf(
+                    "0" to R.string.t497,
+                    "0.5" to R.string.t498,
+                    "1" to R.string.t499
+                )
+                scales.forEachIndexed { idx, (scaleVal, resId) ->
+                    val b = button(getString(resId), outlined = true) {
+                        Thread {
+                            val ok = SystemTweaks.setAnimationScale(this, scaleVal)
+                            AccessStore.log(this, "tweak anim=$scaleVal ok=$ok")
+                            runOnUiThread {
+                                if (ok) {
+                                    animCurrent.text = getString(R.string.t500, "${scaleVal}x")
+                                    snack(getString(R.string.t500, "${scaleVal}x"))
+                                } else {
+                                    snack(getString(R.string.t495), error = true)
+                                }
+                            }
+                        }.start()
+                    }
+                    scaleRow.addView(
+                        b,
+                        LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                            if (idx > 0) marginStart = 6.dp
+                        }
+                    )
+                }
+                controls.addView(scaleRow)
+
+                controls.addView(space(16))
+                controls.addView(divider())
+                controls.addView(space(12))
+
+                lateinit var dnsSwitch: MaterialSwitch
+                dnsSwitch = MaterialSwitch(this).apply {
+                    text = getString(R.string.t501)
+                    textSize = 14f
+                    appTypeface(500)
+                    isChecked = state.adguardDnsOn
+                    setOnCheckedChangeListener(object : android.widget.CompoundButton.OnCheckedChangeListener {
+                        override fun onCheckedChanged(buttonView: android.widget.CompoundButton, want: Boolean) {
+                            Thread {
+                                val ok = SystemTweaks.setAdguardDns(this@MainActivity, want)
+                                AccessStore.log(this@MainActivity, "tweak dns_adguard=$want ok=$ok")
+                                runOnUiThread {
+                                    if (ok) {
+                                        snack(getString(if (want) R.string.t502 else R.string.t503))
+                                    } else {
+                                        setSwitchQuietly(dnsSwitch, !want, this)
+                                        snack(getString(R.string.t495), error = true)
+                                    }
+                                }
+                            }.start()
+                        }
+                    })
+                }
+                controls.addView(dnsSwitch)
+
+                controls.addView(space(8))
+                lateinit var awakeSwitch: MaterialSwitch
+                awakeSwitch = MaterialSwitch(this).apply {
+                    text = getString(R.string.t504)
+                    textSize = 14f
+                    appTypeface(500)
+                    isChecked = state.stayAwakeOn
+                    setOnCheckedChangeListener(object : android.widget.CompoundButton.OnCheckedChangeListener {
+                        override fun onCheckedChanged(buttonView: android.widget.CompoundButton, want: Boolean) {
+                            Thread {
+                                val ok = SystemTweaks.setStayAwake(this@MainActivity, want)
+                                AccessStore.log(this@MainActivity, "tweak stay_awake=$want ok=$ok")
+                                runOnUiThread {
+                                    if (ok) {
+                                        val labelVal = getString(if (want) R.string.t512 else R.string.t513)
+                                        snack(getString(R.string.t505, labelVal))
+                                    } else {
+                                        setSwitchQuietly(awakeSwitch, !want, this)
+                                        snack(getString(R.string.t495), error = true)
+                                    }
+                                }
+                            }.start()
+                        }
+                    })
+                }
+                controls.addView(awakeSwitch)
+
+                controls.addView(space(16))
+                controls.addView(divider())
+                controls.addView(space(14))
+                controls.addView(button(getString(R.string.t506), outlined = true) {
+                    Thread {
+                        val ok = SystemTweaks.trimCaches(this)
+                        AccessStore.log(this, "tweak trim-caches ok=$ok")
+                        runOnUiThread {
+                            snack(
+                                getString(if (ok) R.string.t507 else R.string.t495),
+                                error = !ok
+                            )
+                        }
+                    }.start()
+                })
+            }
+        }.start()
+    }
+
     private fun showProfilesSheet() {
         val sheet = BottomSheetDialog(this)
 
@@ -2966,10 +3296,7 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        sheet.setContentView(ScrollView(this).apply { addView(content) })
-        openSheet = sheet
-        sheet.setOnDismissListener { openSheet = null }
-        sheet.show()
+        showSheetWithInsets(sheet, content)
     }
 
     private fun runProfile(profile: CommandProfiles.Profile) {
@@ -3548,6 +3875,79 @@ class MainActivity : AppCompatActivity() {
             ).apply { setTextColor(hintColor) }
         )
 
+        content.addView(space(12))
+        lateinit var watchdogSwitch: MaterialSwitch
+        watchdogSwitch = MaterialSwitch(this).apply {
+            text = getString(R.string.t474)
+            textSize = 14f
+            appTypeface(500)
+            isChecked = Settings.watchdog(this@MainActivity)
+            setOnCheckedChangeListener(
+                object : android.widget.CompoundButton.OnCheckedChangeListener {
+                    override fun onCheckedChanged(
+                        buttonView: android.widget.CompoundButton,
+                        isChecked: Boolean
+                    ) {
+                        if (!isChecked) {
+                            Settings.setWatchdog(this@MainActivity, false)
+                            WatchdogWorker.syncSchedule(this@MainActivity)
+                            return
+                        }
+                        enableWatchdog { success ->
+                            if (!success) setSwitchQuietly(this@apply, false, this)
+                        }
+                    }
+                }
+            )
+        }
+        content.addView(watchdogSwitch)
+        content.addView(space(4))
+        content.addView(
+            label(
+                getString(R.string.t475),
+                12f
+            ).apply { setTextColor(hintColor); setLineSpacing(2f, 1f) }
+        )
+
+        content.addView(space(16))
+        val rom = OemCompat.detectRom()
+        val battExempt = OemCompat.isIgnoringBatteryOptimizations(this)
+        content.addView(label(getString(R.string.t476), 13f, bold = true).apply { letterSpacing = 0.08f })
+        content.addView(space(6))
+        content.addView(
+            label(getString(R.string.t477, rom.label), 12f).apply { setTextColor(hintColor) }
+        )
+        content.addView(space(4))
+        val battStatus = label(
+            getString(if (battExempt) R.string.t478 else R.string.t479),
+            12f
+        ).apply {
+            setTextColor(if (battExempt) hintColor else themeColor(MR.attr.colorError))
+        }
+        content.addView(battStatus)
+        content.addView(space(6))
+        content.addView(
+            label(getString(OemCompat.adviceRes(rom)), 12f)
+                .apply { setTextColor(hintColor); setLineSpacing(2f, 1f) }
+        )
+        if (!battExempt) {
+            content.addView(space(8))
+            content.addView(button(getString(R.string.t480), outlined = true) {
+                try {
+                    startActivity(OemCompat.requestIgnoreBatteryOptimizationsIntent(this))
+                } catch (_: Exception) {
+                }
+            })
+        }
+        if (OemCompat.hasAutostartActivity(this)) {
+            content.addView(space(8))
+            content.addView(button(getString(R.string.t481), outlined = true) {
+                if (!OemCompat.openOemAutostart(this)) {
+                    snack(getString(R.string.t097), error = true)
+                }
+            })
+        }
+
         content.addView(space(16))
         content.addView(
             label(
@@ -3648,6 +4048,10 @@ class MainActivity : AppCompatActivity() {
             ).apply { setTextColor(hintColor) }
         )
 
+        showSheetWithInsets(sheet, content)
+    }
+
+    private fun showSheetWithInsets(sheet: BottomSheetDialog, content: View) {
         sheet.setContentView(ScrollView(this).apply { addView(content) })
         openSheet = sheet
         sheet.setOnDismissListener { openSheet = null }
@@ -3766,6 +4170,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun enableAutostart(onDone: (Boolean) -> Unit) {
+        ensureWriteSecureSettings(successMsgRes = R.string.t249) { granted ->
+            if (granted) Settings.setBootStart(this, true)
+            onDone(granted)
+        }
+    }
+
+    private fun enableWatchdog(onDone: (Boolean) -> Unit) {
+        ensureWriteSecureSettings(successMsgRes = R.string.t474) { granted ->
+            if (granted) {
+                Settings.setWatchdog(this, true)
+                WatchdogWorker.syncSchedule(this)
+            }
+            onDone(granted)
+        }
+    }
+
+    private fun ensureWriteSecureSettings(successMsgRes: Int, onDone: (Boolean) -> Unit) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             snack(getString(R.string.t240), error = true)
             onDone(false)
@@ -3794,7 +4215,6 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_SECURE_SETTINGS) ==
                 PackageManager.PERMISSION_GRANTED
         if (alreadyGranted) {
-            Settings.setBootStart(this, true)
             wssStatusView?.text = getString(R.string.t228)
             snack(getString(R.string.t245))
             onDone(true)
@@ -3818,9 +4238,8 @@ class MainActivity : AppCompatActivity() {
                     )
                 }) { res ->
                     if (res.startsWith("OK")) {
-                        Settings.setBootStart(this, true)
                         wssStatusView?.text = getString(R.string.t228)
-                        snack(getString(R.string.t249))
+                        snack(getString(successMsgRes))
                         onDone(true)
                     } else {
                         snack(

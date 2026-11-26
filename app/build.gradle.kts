@@ -14,8 +14,8 @@ android {
         applicationId = "com.sitikplay.foxhole"
         minSdk = 26
         targetSdk = 37
-        versionCode = 6
-        versionName = "1.3.2"
+        versionCode = 7
+        versionName = "1.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

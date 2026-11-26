@@ -115,4 +115,10 @@ object Settings {
     fun setFoldExpanded(ctx: Context, key: String, value: Boolean) {
         prefs(ctx).edit().putBoolean("fold_$key", value).apply()
     }
+
+    fun watchdog(ctx: Context): Boolean = prefs(ctx).getBoolean("watchdog", false)
+
+    fun setWatchdog(ctx: Context, value: Boolean) {
+        prefs(ctx).edit().putBoolean("watchdog", value).apply()
+    }
 }

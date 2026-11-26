@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
-import org.json.JSONObject
+import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -18,15 +18,27 @@ data class ReleaseInfo(
 )
 
 object UpdateChecker {
-    private const val GITHUB_API_LATEST = "https://api.github.com/repos/SitikPlay/foxhole/releases/latest"
+    private const val GITHUB_API_RELEASES = "https://api.github.com/repos/SitikPlay/foxhole/releases?per_page=15"
 
     /**
-     * Проверяет последнюю версию на GitHub Releases.
+     * Проверяет, относится ли тег к Android-приложению Foxhole
+     * (игнорирует релизы компаньона foxhole-adb с тегами `adb-v*`).
+     */
+    fun isAndroidReleaseTag(tagName: String): Boolean {
+        val clean = tagName.trim()
+        if (clean.isEmpty()) return false
+        if (clean.startsWith("adb-", ignoreCase = true)) return false
+        val stripped = clean.removePrefix("v").removePrefix("V")
+        return stripped.firstOrNull()?.isDigit() == true
+    }
+
+    /**
+     * Проверяет последнюю Android-версию на GitHub Releases.
      * Возвращает ReleaseInfo или null при ошибке/отсутствии сети.
      */
     fun checkLatestRelease(currentVersion: String): ReleaseInfo? {
         return try {
-            val url = URL(GITHUB_API_LATEST)
+            val url = URL(GITHUB_API_RELEASES)
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 connectTimeout = 8000
                 readTimeout = 8000
@@ -42,30 +54,24 @@ object UpdateChecker {
             val response = conn.inputStream.bufferedReader().use { it.readText() }
             conn.disconnect()
 
-            val json = JSONObject(response)
-            val tagName = json.optString("tag_name", "").trim()
-            val name = json.optString("name", tagName).trim()
-            val body = json.optString("body", "").trim()
+            val releases = JSONArray(response)
+            var fallbackCandidate: ReleaseInfo? = null
+            for (i in 0 until releases.length()) {
+                val json = releases.optJSONObject(i) ?: continue
+                if (json.optBoolean("draft", false) || json.optBoolean("prerelease", false)) continue
+                val tagName = json.optString("tag_name", "").trim()
+                if (!isAndroidReleaseTag(tagName)) continue
 
-            var apkUrl: String? = null
-            val assets = json.optJSONArray("assets")
-            if (assets != null) {
-                for (i in 0 until assets.length()) {
-                    val asset = assets.optJSONObject(i) ?: continue
-                    val aName = asset.optString("name", "")
-                    if (aName.endsWith(".apk", ignoreCase = true) && !aName.contains("debug", ignoreCase = true)) {
-                        val dl = asset.optString("browser_download_url", "")
-                        if (dl.isNotEmpty()) {
-                            apkUrl = dl
-                            break
-                        }
-                    }
-                }
-                if (apkUrl == null) {
-                    for (i in 0 until assets.length()) {
-                        val asset = assets.optJSONObject(i) ?: continue
+                val name = json.optString("name", tagName).trim()
+                val body = json.optString("body", "").trim()
+
+                var apkUrl: String? = null
+                val assets = json.optJSONArray("assets")
+                if (assets != null) {
+                    for (j in 0 until assets.length()) {
+                        val asset = assets.optJSONObject(j) ?: continue
                         val aName = asset.optString("name", "")
-                        if (aName.endsWith(".apk", ignoreCase = true)) {
+                        if (aName.endsWith(".apk", ignoreCase = true) && !aName.contains("debug", ignoreCase = true)) {
                             val dl = asset.optString("browser_download_url", "")
                             if (dl.isNotEmpty()) {
                                 apkUrl = dl
@@ -73,18 +79,32 @@ object UpdateChecker {
                             }
                         }
                     }
+                    if (apkUrl == null) {
+                        for (j in 0 until assets.length()) {
+                            val asset = assets.optJSONObject(j) ?: continue
+                            val aName = asset.optString("name", "")
+                            if (aName.endsWith(".apk", ignoreCase = true)) {
+                                val dl = asset.optString("browser_download_url", "")
+                                if (dl.isNotEmpty()) {
+                                    apkUrl = dl
+                                    break
+                                }
+                            }
+                        }
+                    }
                 }
+
+                val info = ReleaseInfo(
+                    tagName = tagName,
+                    name = if (name.isNotEmpty()) name else "Foxhole $tagName",
+                    body = body,
+                    apkUrl = apkUrl,
+                    isNewer = isVersionNewer(tagName, currentVersion)
+                )
+                if (apkUrl != null) return info
+                if (fallbackCandidate == null) fallbackCandidate = info
             }
-
-            val isNewer = isVersionNewer(tagName, currentVersion)
-
-            ReleaseInfo(
-                tagName = tagName,
-                name = if (name.isNotEmpty()) name else "Foxhole $tagName",
-                body = body,
-                apkUrl = apkUrl,
-                isNewer = isNewer
-            )
+            fallbackCandidate
         } catch (_: Exception) {
             null
         }

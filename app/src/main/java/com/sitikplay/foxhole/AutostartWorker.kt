@@ -8,6 +8,7 @@ class AutostartWorker(context: Context, params: WorkerParameters) : Worker(conte
 
     companion object {
         const val NAME = "foxhole_boot_autostart"
+        const val EXTRA_FORCE_AFTER_UPDATE = "force_after_update"
     }
 
     private val ctx: Context = applicationContext
@@ -26,7 +27,8 @@ class AutostartWorker(context: Context, params: WorkerParameters) : Worker(conte
         } catch (e: Exception) {
             -1
         }
-        if (Settings.autostartBootCount(ctx) == bootCount) {
+        val forceAfterUpdate = inputData.getBoolean(EXTRA_FORCE_AFTER_UPDATE, false)
+        if (!forceAfterUpdate && Settings.autostartBootCount(ctx) == bootCount) {
             AccessStore.log(ctx, ctx.getString(R.string.t325))
             return Result.success()
         }
@@ -56,6 +58,7 @@ class AutostartWorker(context: Context, params: WorkerParameters) : Worker(conte
         return if (result.startsWith("OK")) {
             AccessStore.log(ctx, ctx.getString(R.string.t332, result))
             AccessNotifications.notifyAutostart(ctx, true, result.substringAfter("OK|"))
+            ServerTileService.requestRefresh(ctx)
             Result.success()
         } else {
             AccessStore.log(ctx, ctx.getString(R.string.t332, result))

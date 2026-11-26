@@ -1,7 +1,11 @@
 package com.sitikplay.foxhole
 
 import android.content.Context
+import android.os.Build
+import io.github.muntashirakon.adb.AdbAuthenticationFailedException
+import io.github.muntashirakon.adb.AdbPairingRequiredException
 import io.github.muntashirakon.adb.android.AdbMdns
+import io.github.muntashirakon.adb.android.AndroidUtils
 import java.io.File
 import java.net.Inet4Address
 import java.net.InetAddress
@@ -15,6 +19,21 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 object Discover {
+
+    enum class ConnectStatus {
+        CONNECTED,
+        PAIRING_REQUIRED,
+        AUTH_FAILED,
+        WIFI_DISABLED,
+        FAILED
+    }
+
+    data class ConnectResult(
+        val status: ConnectStatus,
+        val host: String? = null,
+        val port: Int = -1,
+        val lastError: Exception? = null
+    )
 
     fun service(ctx: Context, serviceType: String, timeoutMs: Long): Pair<String, Int>? {
         val found = AtomicReference<Pair<String, Int>?>(null)
@@ -31,13 +50,89 @@ object Discover {
         // и сессия спаривания (AdbPairingThread) умирает на глазах
         // («Pairing failed» сразу после acquire). NsdManager-поиск сам
         // управляет сокетами системы, приложению lock не нужен.
-        mdns.start()
         return try {
+            mdns.start()
             latch.await(timeoutMs, TimeUnit.MILLISECONDS)
             found.get()
+        } catch (e: Exception) {
+            null
         } finally {
-            mdns.stop()
+            runCatching { mdns.stop() }
         }
+    }
+
+    /**
+     * Подключение к локальному беспроводному ADB с многоступенчатым фолбэком:
+     * 1) стандартный mDNS (`_adb-tls-connect._tcp`);
+     * 2) сохранённый пользователем адрес `host:port` из настроек;
+     * 3) прямое TLS-сканирование эфемерных портов (обход сломанного mDNS на HyperOS/MIUI/ColorOS).
+     */
+    fun connectWithFallback(
+        ctx: Context,
+        adb: FoxholeAdb,
+        mdnsTimeoutMs: Long = 5_000L,
+        scanBudgetMs: Long = 20_000L,
+        excludePorts: Set<Int> = setOf(Settings.port(ctx)),
+        onProgress: ((String) -> Unit)? = null
+    ): ConnectResult {
+        var lastError: Exception? = null
+
+        fun tryConnect(host: String, port: Int): ConnectResult? {
+            return try {
+                adb.resetConnection()
+                if (adb.connect(host, port)) {
+                    FoxholeAdb.markPaired(ctx)
+                    ConnectResult(ConnectStatus.CONNECTED, host, port)
+                } else {
+                    null
+                }
+            } catch (e: AdbPairingRequiredException) {
+                ConnectResult(ConnectStatus.PAIRING_REQUIRED, host, port, e)
+            } catch (e: AdbAuthenticationFailedException) {
+                ConnectResult(ConnectStatus.AUTH_FAILED, host, port, e)
+            } catch (e: Exception) {
+                lastError = e
+                null
+            }
+        }
+
+        // 1. mDNS-поиск
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val mdnsFound = service(ctx, AdbMdns.SERVICE_TYPE_TLS_CONNECT, mdnsTimeoutMs)
+            if (mdnsFound != null) {
+                tryConnect(mdnsFound.first, mdnsFound.second)?.let { return it }
+            }
+        }
+
+        // 2. Ручной адрес из настроек (если задан)
+        Settings.parseWdsAddress(Settings.wdsAddress(ctx))?.let { (h, p) ->
+            tryConnect(h, p)?.let { return it }
+        }
+
+        // 3. Проверка включённой беспроводной отладки перед сканированием портов
+        val wifiDebugOn = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                android.provider.Settings.Global.getInt(ctx.contentResolver, "adb_wifi_enabled", 0) == 1
+            } catch (e: Exception) {
+                true
+            }
+        } else {
+            false
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !wifiDebugOn) {
+            return ConnectResult(ConnectStatus.WIFI_DISABLED, lastError = lastError)
+        }
+
+        // 4. Прямой TLS-скан открытых эфемерных портов (спасение при мёртвом mDNS)
+        onProgress?.invoke(ctx.getString(R.string.t472))
+        val hostIp = runCatching { AndroidUtils.getHostIpAddress(ctx) }.getOrNull()
+        val hosts = (localIpv4s() + listOfNotNull(hostIp)).distinct()
+        val candidates = scanTlsPorts(hosts, excludePorts, scanBudgetMs, collectAllHosts = true)
+        for ((host, port) in candidates) {
+            tryConnect(host, port)?.let { return it }
+        }
+
+        return ConnectResult(ConnectStatus.FAILED, lastError = lastError)
     }
 
     /**
@@ -45,32 +140,37 @@ object Discover {
      * сервис спаривания даже при открытом окне с кодом — приём мультикаста
      * сломан. Тогда ищем порт спаривания прямым сканированием собственных
      * адресов: окно с кодом держит TLS-порт открытым около 2 минут.
-     *
-     * 1) connect-скан эфемерного диапазона портов на своём IP;
-     * 2) TLS-фильтр: порт спаривания — TLS-сервер, прочие открытые порты
-     *    молчат или не отвечают по TLS.
-     *
-     * Возвращает порты-кандидаты по возрастанию; вызывающий пробует
-     * спаривание по каждому, пока какой-то не примет код.
      */
     fun scanPairingPorts(
         hosts: List<String>,
         exclude: Set<Int> = emptySet(),
         budgetMs: Long = 40_000
+    ): List<Pair<String, Int>> = scanTlsPorts(hosts, exclude, budgetMs, collectAllHosts = false)
+
+    fun scanTlsPorts(
+        hosts: List<String>,
+        exclude: Set<Int> = emptySet(),
+        budgetMs: Long = 40_000,
+        collectAllHosts: Boolean = false
     ): List<Pair<String, Int>> {
         val deadline = System.currentTimeMillis() + budgetMs
         // Loopback первым: живой тест показал, что соединение с собственного
         // адреса интерфейса HyperOS отклоняет, а 127.0.0.1 работает.
-        val ordered = listOf("127.0.0.1") + hosts.distinct().filter { it != "127.0.0.1" }
+        val ordered = listOf("127.0.0.1") + hosts.distinct().filter { it.isNotBlank() && it != "127.0.0.1" }
+        val results = ArrayList<Pair<String, Int>>()
         for (host in ordered) {
             val left = deadline - System.currentTimeMillis()
             if (left <= 0) break
-            val scanned = scanHost(host, exclude, left)
+            val scanned = scanHost(host, exclude, if (collectAllHosts) minOf(left, 6_000L) else left)
             if (scanned.isNotEmpty()) {
-                return scanned.map { host to it }
+                val mapped = scanned.map { host to it }
+                if (!collectAllHosts) return mapped
+                results.addAll(mapped)
+                // Если проверили 127.0.0.1 и первый реальный LAN-интерфейс — достаточно
+                if (host != "127.0.0.1") break
             }
         }
-        return emptyList()
+        return results
     }
 
     private fun scanHost(host: String, exclude: Set<Int>, budgetMs: Long): List<Int> {
@@ -80,11 +180,11 @@ object Discover {
         val tls = Collections.synchronizedList(ArrayList<Int>())
         val pool = Executors.newFixedThreadPool(96)
         try {
-            // ВАЖНО: соединение с портом спаривания нельзя «трогать впустую» —
+            // ВАЖНО: соединение с портом нельзя «трогать впустую» —
             // сервер спаривания одноразовый и умирает от подключения без данных.
             // Поэтому probe встроен в сам скан: сразу после connect отправляем
             // TLS ClientHello и читаем ответ. Отказ в connect — порт закрыт,
-            // обмен TLS-записью — кандидат на порт спаривания.
+            // обмен TLS-записью — кандидат на TLS-порт adbd.
             for (p in ports) {
                 if (System.currentTimeMillis() > deadline) break
                 pool.execute {
@@ -97,11 +197,10 @@ object Discover {
         } finally {
             pool.shutdownNow()
         }
-        val result = tls.sorted()
-        return result
+        return tls.sorted()
     }
 
-    /** Диапазон эфемерных портов ядра: adbd выбирает порт спаривания из него. */
+    /** Диапазон эфемерных портов ядра: adbd выбирает порт из него. */
     fun ephemeralRange(): IntRange = parsePortRange(
         try {
             File("/proc/sys/net/ipv4/ip_local_port_range").readText().trim()
@@ -122,15 +221,25 @@ object Discover {
         }
     }
 
-    /** Локальные IPv4-адреса без loopback: приватные (192.168/10/172.16) первыми. */
+    /** Локальные IPv4-адреса без loopback: сначала активные Wi-Fi/локальные интерфейсы. */
     fun localIpv4s(): List<String> = try {
-        Collections.list(NetworkInterface.getNetworkInterfaces())
-            .asSequence()
-            .flatMap { Collections.list(it.inetAddresses).asSequence() }
-            .filterIsInstance<Inet4Address>()
-            .filter { !it.isLoopbackAddress }
-            .sortedByDescending { it.isSiteLocalAddress }
-            .map { it.hostAddress }
+        val ifaces = Collections.list(NetworkInterface.getNetworkInterfaces())
+        ifaces.asSequence()
+            .filter { iface -> runCatching { iface.isUp && !iface.isLoopback }.getOrDefault(false) }
+            .flatMap { iface ->
+                val isWlan = iface.name.startsWith("wlan", ignoreCase = true)
+                val notP2p = runCatching { !iface.isPointToPoint }.getOrDefault(true)
+                Collections.list(iface.inetAddresses).asSequence()
+                    .filterIsInstance<Inet4Address>()
+                    .filter { !it.isLoopbackAddress }
+                    .map { addr -> Triple(addr, isWlan && notP2p, addr.isSiteLocalAddress) }
+            }
+            .sortedWith(
+                compareByDescending<Triple<Inet4Address, Boolean, Boolean>> { it.second }
+                    .thenByDescending { it.third }
+            )
+            .map { it.first.hostAddress }
+            .distinct()
             .toList()
     } catch (e: Exception) {
         emptyList()
@@ -155,9 +264,9 @@ object Discover {
     }
 
     /**
-     * Минимальный TLS 1.2 ClientHello. От порта спаривания ждём в ответ любую
+     * Минимальный TLS 1.2 ClientHello. От порта ждём в ответ любую
      * TLS-запись (ServerHello или alert) — этого достаточно, чтобы отличить
-     * adbd-порт спаривания от прочих открытых портов.
+     * TLS-порт adbd от прочих открытых портов.
      */
     private fun clientHello(): ByteArray {
         fun u16(v: Int) = byteArrayOf(

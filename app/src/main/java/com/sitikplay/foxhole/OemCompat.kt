@@ -1,0 +1,136 @@
+package com.sitikplay.foxhole
+
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings as SysSettings
+
+object OemCompat {
+
+    enum class RomFamily(val label: String) {
+        HYPEROS("Xiaomi HyperOS"),
+        MIUI("Xiaomi MIUI"),
+        ONEUI("Samsung One UI"),
+        COLOROS("ColorOS / Realme UI / OxygenOS"),
+        MAGIC("Honor MagicOS / Huawei EMUI"),
+        AOSP("Android / Pixel / AOSP")
+    }
+
+    fun classifyRom(
+        manufacturer: String,
+        brand: String,
+        display: String,
+        miuiVersion: String?,
+        hyperOsVersion: String?,
+        sepVersion: String?
+    ): RomFamily {
+        val man = manufacturer.trim().lowercase()
+        val br = brand.trim().lowercase()
+        val disp = display.trim().lowercase()
+        val xiaomiHardware = man == "xiaomi" || br in setOf("xiaomi", "redmi", "poco")
+        val hasHyper = !hyperOsVersion.isNullOrBlank() ||
+            disp.contains("hyperos") ||
+            (xiaomiHardware && (disp.startsWith("os1.") || disp.startsWith("os2.") || disp.startsWith("os3.")))
+
+        if (hasHyper) return RomFamily.HYPEROS
+        if (!miuiVersion.isNullOrBlank() || xiaomiHardware) return RomFamily.MIUI
+        if (man == "samsung" || !sepVersion.isNullOrBlank()) return RomFamily.ONEUI
+        if (man in setOf("oppo", "realme", "oneplus") || br in setOf("oppo", "realme", "oneplus")) {
+            return RomFamily.COLOROS
+        }
+        if (man in setOf("huawei", "honor") || br in setOf("huawei", "honor")) {
+            return RomFamily.MAGIC
+        }
+        return RomFamily.AOSP
+    }
+
+    fun detectRom(): RomFamily = classifyRom(
+        manufacturer = Build.MANUFACTURER.orEmpty(),
+        brand = Build.BRAND.orEmpty(),
+        display = Build.DISPLAY.orEmpty(),
+        miuiVersion = sysProp("ro.miui.ui.version.name"),
+        hyperOsVersion = sysProp("ro.mi.os.version.name"),
+        sepVersion = sysProp("ro.build.version.sep")
+    )
+
+    private fun sysProp(key: String): String? = try {
+        val cls = Class.forName("android.os.SystemProperties")
+        val get = cls.getMethod("get", String::class.java, String::class.java)
+        (get.invoke(null, key, "") as? String)?.trim()?.takeIf { it.isNotEmpty() }
+    } catch (_: Exception) {
+        null
+    }
+
+    fun isIgnoringBatteryOptimizations(ctx: Context): Boolean {
+        val pm = ctx.getSystemService(PowerManager::class.java) ?: return false
+        return runCatching { pm.isIgnoringBatteryOptimizations(ctx.packageName) }.getOrDefault(false)
+    }
+
+    fun isWifiDebuggingOn(ctx: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false
+        return try {
+            SysSettings.Global.getInt(ctx.contentResolver, "adb_wifi_enabled", 0) == 1
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    fun hasWriteSecureSettings(ctx: Context): Boolean =
+        ctx.checkSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS) ==
+            PackageManager.PERMISSION_GRANTED
+
+    fun requestIgnoreBatteryOptimizationsIntent(ctx: Context): Intent {
+        val direct = Intent(
+            SysSettings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            Uri.parse("package:${ctx.packageName}")
+        )
+        return if (direct.resolveActivity(ctx.packageManager) != null) {
+            direct
+        } else {
+            Intent(SysSettings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+        }
+    }
+
+    private fun autostartIntents(): List<Intent> = listOf(
+        Intent("miui.intent.action.OP_AUTO_START").addCategory(Intent.CATEGORY_DEFAULT),
+        Intent().setComponent(
+            ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")
+        ),
+        Intent().setComponent(
+            ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity")
+        ),
+        Intent().setComponent(
+            ComponentName("com.oplus.safecenter", "com.oplus.safecenter.startupapp.StartupAppListActivity")
+        ),
+        Intent().setComponent(
+            ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity")
+        )
+    )
+
+    fun openOemAutostart(ctx: Context): Boolean {
+        for (intent in autostartIntents()) {
+            try {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (intent.resolveActivity(ctx.packageManager) != null) {
+                    ctx.startActivity(intent)
+                    return true
+                }
+            } catch (_: Exception) {
+            }
+        }
+        return false
+    }
+
+    fun hasAutostartActivity(ctx: Context): Boolean =
+        autostartIntents().any { runCatching { it.resolveActivity(ctx.packageManager) != null }.getOrDefault(false) }
+
+    fun adviceRes(rom: RomFamily): Int = when (rom) {
+        RomFamily.HYPEROS, RomFamily.MIUI -> R.string.t483
+        RomFamily.ONEUI -> R.string.t484
+        RomFamily.COLOROS, RomFamily.MAGIC, RomFamily.AOSP -> R.string.t485
+    }
+}
